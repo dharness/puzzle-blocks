@@ -1,0 +1,10 @@
+{
+	"files.exclude": {
+		"C:/Users/Dylan Harness/Documents/dev/toad/.git": true,
+		"C:/Users/Dylan Harness/Documents/dev/toad/.vs": true,
+		"C:/Users/Dylan Harness/Documents/dev/toad/.vscode": true,
+		"C:/Users/Dylan Harness/Documents/dev/toad/Content": true,
+		"C:/Users/Dylan Harness/Documents/dev/toad/Intermediate": true,
+		"C:/Users/Dylan Harness/Documents/dev/toad/Saved": true
+	}
+}
