@@ -129,7 +129,6 @@ public:
 
 	virtual void InitializeComponent() override;
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-	virtual FVector ComputeSlideVector(const FVector& Delta, const float Time, const FVector& Normal, const FHitResult& Hit) const;
 	FVector ComputeTargetVelocity(const FVector& InputVector) const;
 	FVector ComputeAcceleration(const FVector& InputVector) const;
 	void PerformMovement(float DeltaTime);
