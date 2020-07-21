@@ -15,6 +15,16 @@ void TD_Logging::LogDefault(FString Str)
 	LogString(Str);
 }
 
+void TD_Logging::LogDefault(char * PtrChar)
+{
+	LogString(FString(PtrChar));
+}
+
+void TD_Logging::LogDefault(bool Bool)
+{
+	LogString(Bool ? "true" : "false");
+}
+
 void TD_Logging::LogString(FString Str)
 {
 	GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, Str);

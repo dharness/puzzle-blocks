@@ -3,7 +3,7 @@
 
 #include "TD_PawnMovementComponent.h"
 #include "Engine.h"
-#include "TD_Logging.h"
+//#include "TD_Logging.h"
 
 
 const float UTD_PawnMovementComponent::BRAKE_TO_STOP_VELOCITY = 10.f;
@@ -28,6 +28,10 @@ UTD_PawnMovementComponent::UTD_PawnMovementComponent(const FObjectInitializer& O
 	MaxAcceleration = 2048.0f;
 	MaxDeceleration = 2048.0f;
 	MaxSpeed = 600.0f;
+
+	/*SetPlaneConstraintEnabled(true);
+	SetPlaneConstraintNormal(FVector(0,0,1));*/
+	//TD_Logging::LogDefault(bConstrainToPlane);
 }
 
 void UTD_PawnMovementComponent::InitializeComponent()
@@ -55,7 +59,14 @@ void UTD_PawnMovementComponent::TickComponent(float DeltaTime, enum ELevelTick T
 	CalcVelocity(DeltaTime, GroundFriction, ScaledInputVector);
 
 	PerformMovement(DeltaTime);
-};
+}
+FVector UTD_PawnMovementComponent::ComputeSlideVector(const FVector& Delta, const float Time, const FVector& Normal, const FHitResult& Hit) const
+{
+	FVector slideVector = Super::ComputeSlideVector(Delta, Time, Normal, Hit);
+	//slideVector.Z = 0.0;
+	//TD_Logging::LogDefault(bConstrainToPlane);
+	return slideVector;
+}
 
 FVector UTD_PawnMovementComponent::ComputeTargetVelocity(const FVector& InputVector) const
 {
@@ -196,6 +207,8 @@ void UTD_PawnMovementComponent::PerformMovement(float DeltaTime)
 	{
 		float PercentTimeApplied = Hit.Time;
 		HandleImpact(Hit, DeltaTime, Delta);
+		/*SetPlaneConstraintEnabled(true);
+		SetPlaneConstraintNormal(FVector(0, 0, 1));*/
 		SlideAlongSurface(Delta, 1.f - PercentTimeApplied, Hit.Normal, Hit, true);
 	}
 }
