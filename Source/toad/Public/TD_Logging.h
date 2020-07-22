@@ -17,5 +17,6 @@ public:
 	static void LogDefault(FString Str);
 	static void LogDefault(char* PtrChar);
 	static void LogDefault(bool Bool);
+	static void LogDefault(int32 Int);
 	static void LogString(FString Str);
 };

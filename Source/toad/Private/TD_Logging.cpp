@@ -25,6 +25,11 @@ void TD_Logging::LogDefault(bool Bool)
 	LogString(Bool ? "true" : "false");
 }
 
+void TD_Logging::LogDefault(int32 Int)
+{
+	LogString(FString::FromInt(Int));
+}
+
 void TD_Logging::LogString(FString Str)
 {
 	GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, Str);
