@@ -7,6 +7,7 @@
 ATD_Character::ATD_Character()
 {
 	PrimaryActorTick.bCanEverTick = true;
+	Holster2 = CreateDefaultSubobject<USceneComponent>(TEXT("Holster2"));
 }
 
 void ATD_Character::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -21,6 +22,7 @@ void ATD_Character::OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* Ot
 
 void ATD_Character::Grab()
 {
+	TD_Logging::LogDefault("Grabbing");
 }
 
 void ATD_Character::Throw()
@@ -36,7 +38,7 @@ void ATD_Character::UpdateInteractables(UPrimitiveComponent* OverlappedComp)
 	for (auto* Actor : OverlappingActors)
 	{
 		bool IsInteractable = this->IsInteractable(Actor);
-		if(IsInteractable)
+		if (IsInteractable)
 		{
 			NextInteractableActors.Emplace(Actor);
 		}
