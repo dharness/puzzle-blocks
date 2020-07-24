@@ -7,7 +7,25 @@
 ATD_Character::ATD_Character()
 {
 	PrimaryActorTick.bCanEverTick = true;
-	Holster2 = CreateDefaultSubobject<USceneComponent>(TEXT("Holster2"));
+}
+
+void ATD_Character::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+	if (InteractableActors.Num() > 0)
+	{
+		UpdateInteractable();
+	}
+}
+
+void ATD_Character::Init(USceneComponent* NextHolster, UPrimitiveComponent* NextGrabRegion)
+{
+	Holster = NextHolster;
+	GrabRegion = NextGrabRegion;
+	TD_Logging::LogDefault(IsValid(GrabRegion));
+
+	GrabRegion->OnComponentBeginOverlap.AddDynamic(this, &ATD_Character::OnOverlapBegin);
+	GrabRegion->OnComponentEndOverlap.AddDynamic(this, &ATD_Character::OnOverlapEnd);
 }
 
 void ATD_Character::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -27,6 +45,14 @@ void ATD_Character::Grab()
 
 void ATD_Character::Throw()
 {
+}
+
+void ATD_Character::UpdateInteractable()
+{
+	if (InteractableActors.IsValidIndex(0))
+	{
+		CurrentInteractable = InteractableActors[0];
+	}
 }
 
 void ATD_Character::UpdateInteractables(UPrimitiveComponent* OverlappedComp)
@@ -51,4 +77,3 @@ bool ATD_Character::IsInteractable(AActor* Actor)
 {
 	return UKismetSystemLibrary::DoesImplementInterface(Actor, UHoldable::StaticClass());
 }
-
