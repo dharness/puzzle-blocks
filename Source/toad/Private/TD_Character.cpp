@@ -2,6 +2,7 @@
 #include "TD_Logging.h"
 #include "Holdable.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Components/StaticMeshComponent.h"
 
 
 ATD_Character::ATD_Character()
@@ -12,10 +13,7 @@ ATD_Character::ATD_Character()
 void ATD_Character::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	if (InteractableActors.Num() > 0)
-	{
-		UpdateInteractable();
-	}
+	UpdateInteractable();
 }
 
 void ATD_Character::Init(USceneComponent* NextHolster, UPrimitiveComponent* NextGrabRegion)
@@ -36,22 +34,73 @@ void ATD_Character::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* 
 void ATD_Character::OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
 	UpdateInteractables(OverlappedComp);
+	if (HasJustThrown && OtherActor == HeldObject)
+	{
+		UStaticMeshComponent* StaticMesh = Cast<UStaticMeshComponent>(HeldObject->GetComponentByClass(UStaticMeshComponent::StaticClass()));
+		StaticMesh->SetCollisionProfileName(HeldObjectCollisionProfileName);
+		HeldObject = nullptr;
+		HasJustThrown = false;
+	}
 }
 
-void ATD_Character::Grab()
+void ATD_Character::Grab(AActor* ToGrab)
 {
-	TD_Logging::LogDefault("Grabbing");
+	if (IsValid(ToGrab))
+	{
+		UStaticMeshComponent* StaticMesh = Cast<UStaticMeshComponent>(ToGrab->GetComponentByClass(UStaticMeshComponent::StaticClass()));
+		StaticMesh->SetSimulatePhysics(false);
+		HeldObjectCollisionProfileName = StaticMesh->GetCollisionProfileName();
+		StaticMesh->SetCollisionProfileName(FName(TEXT("HeldObject")));
+		auto AttachmentRules = FAttachmentTransformRules(
+			EAttachmentRule::SnapToTarget,
+			EAttachmentRule::SnapToTarget,
+			EAttachmentRule::KeepWorld,
+			false
+		);
+		ToGrab->AttachToComponent(Holster, AttachmentRules);
+		HeldObject = ToGrab;
+	}
 }
 
-void ATD_Character::Throw()
+void ATD_Character::Throw(float Strength)
 {
+	if (!IsValid(HeldObject)) return;
+
+	UStaticMeshComponent* StaticMesh = Cast<UStaticMeshComponent>(HeldObject->GetComponentByClass(UStaticMeshComponent::StaticClass()));
+	StaticMesh->SetSimulatePhysics(true);
+	auto DetchmentRules = FDetachmentTransformRules(
+		EDetachmentRule::KeepWorld,
+		EDetachmentRule::KeepWorld,
+		EDetachmentRule::KeepWorld,
+		false
+	);
+	UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(HeldObject->GetRootComponent());
+	FVector ThrowVector = GetActorForwardVector() * Strength;
+	PrimitiveComponent->SetPhysicsLinearVelocity(ThrowVector, true);
+	HeldObject->GetRootComponent()->DetachFromComponent(DetchmentRules);
+	HasJustThrown = true;
+}
+
+void ATD_Character::GetInteractable(bool& Success, AActor*& Interactable)
+{
+	Success = CurrentInteractable != nullptr;
+	Interactable = CurrentInteractable;
+}
+
+void ATD_Character::GetHeldObject(bool& Success, AActor*& _HeldObject)
+{
+	Success = HeldObject != nullptr;
+	_HeldObject = HeldObject;
 }
 
 void ATD_Character::UpdateInteractable()
 {
-	if (InteractableActors.IsValidIndex(0))
+	auto NextInteractable = InteractableActors.IsValidIndex(0) ? InteractableActors[0] : nullptr;
+
+	if (NextInteractable != CurrentInteractable)
 	{
-		CurrentInteractable = InteractableActors[0];
+		CurrentInteractable = NextInteractable;
+		OnInteractableChanged();
 	}
 }
 
@@ -70,7 +119,6 @@ void ATD_Character::UpdateInteractables(UPrimitiveComponent* OverlappedComp)
 		}
 	}
 	InteractableActors = NextInteractableActors;
-	TD_Logging::LogDefault(InteractableActors.Num());
 }
 
 bool ATD_Character::IsInteractable(AActor* Actor)

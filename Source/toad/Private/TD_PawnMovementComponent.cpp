@@ -27,7 +27,7 @@ UTD_PawnMovementComponent::UTD_PawnMovementComponent(const FObjectInitializer& O
 	GroundFriction = 8.0f;
 	MaxAcceleration = 2048.0f;
 	MaxDeceleration = 2048.0f;
-	MaxSpeed = 600.0f;
+	MaxSpeed = 300.0f;
 }
 
 void UTD_PawnMovementComponent::InitializeComponent()
