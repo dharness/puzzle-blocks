@@ -28,6 +28,9 @@ UTD_PawnMovementComponent::UTD_PawnMovementComponent(const FObjectInitializer& O
 	MaxAcceleration = 2048.0f;
 	MaxDeceleration = 2048.0f;
 	MaxSpeed = 300.0f;
+	CanMove = true;
+	bConstrainToPlane = true;
+	PlaneConstraintNormal = FVector(0,0,1);
 }
 
 void UTD_PawnMovementComponent::InitializeComponent()
@@ -41,7 +44,7 @@ void UTD_PawnMovementComponent::TickComponent(float DeltaTime, enum ELevelTick T
     Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
     // Make sure that everything is still valid, and that we are allowed to move.
-    if (!PawnOwner || !UpdatedComponent || ShouldSkipUpdate(DeltaTime))
+    if (!PawnOwner || !UpdatedComponent || ShouldSkipUpdate(DeltaTime) || !CanMove)
     {
         return;
     }

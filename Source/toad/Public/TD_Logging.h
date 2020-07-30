@@ -18,5 +18,6 @@ public:
 	static void LogDefault(char* PtrChar);
 	static void LogDefault(bool Bool);
 	static void LogDefault(int32 Int);
+	static void LogDefault(float Float);
 	static void LogString(FString Str);
 };

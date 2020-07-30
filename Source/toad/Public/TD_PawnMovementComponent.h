@@ -15,6 +15,9 @@ class TOAD_API UTD_PawnMovementComponent : public UPawnMovementComponent
 	GENERATED_BODY()
 
 public:
+	UPROPERTY(BlueprintReadWrite)
+	bool CanMove;
+
 	UTD_PawnMovementComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** If enabled, the player will interact with physics objects when walking into them. */
