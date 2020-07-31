@@ -7,9 +7,13 @@
 #include "Components/SceneComponent.h"
 #include "Components/TimelineComponent.h"
 #include "Curves/CurveFloat.h"
+#include "TD_IKAction.h"
 
 #include "TD_HandAnimInstance.h"
 #include "TD_HandIKComponent.generated.h"
+
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnGrabContact);
 
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
@@ -30,31 +34,44 @@ public:
 
 public:	
 	void BindTimelineFunctions();
-	// Called every frame
+
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		UTD_HandAnimInstance* HandAnimInstance;
+	UTD_HandAnimInstance* HandAnimInstance;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		UCurveFloat* GrabCurve;
+	UCurveFloat* GrabCurve;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		USceneComponent* HandIKTargetR;
+	USceneComponent* HandIKTargetR;
 
 	UFUNCTION(BlueprintCallable)
-		void Grab(USceneComponent* ToGrab, USceneComponent* GrabAnchor);
+	void Grab(USceneComponent* ToGrab);
 
 	UFUNCTION()
-		void OnTimelineTick();
+	void OnExtendTick();
 
 	UFUNCTION()
-		void OnTimelineEnd();
+	void OnExtendEnd();
+
+	UFUNCTION()
+	void OnRetractTick();
+
+	UFUNCTION()
+	void OnRetractEnd();
 
 	void SyncAnimParams();
 
-	FTimeline GrabTimeline;
+public:
+	UTD_IKAction* IKAction;
+
+	FTimeline ExtendTimeline;
+	FTimeline RetractTimeline;
 	FVector StartLocation;
 	FVector EndLocation;
-		
+
+public:
+	UPROPERTY(BlueprintAssignable)
+	FOnGrabContact OnGrabContact;	
 };

@@ -1,5 +1,4 @@
 #include "TD_Character.h"
-#include "TD_Logging.h"
 #include "Holdable.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Components/StaticMeshComponent.h"
@@ -20,7 +19,6 @@ void ATD_Character::Init(USceneComponent* NextHolster, UPrimitiveComponent* Next
 {
 	Holster = NextHolster;
 	GrabRegion = NextGrabRegion;
-	TD_Logging::LogDefault(IsValid(GrabRegion));
 
 	GrabRegion->OnComponentBeginOverlap.AddDynamic(this, &ATD_Character::OnOverlapBegin);
 	GrabRegion->OnComponentEndOverlap.AddDynamic(this, &ATD_Character::OnOverlapEnd);

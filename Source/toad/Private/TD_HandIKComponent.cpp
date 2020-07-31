@@ -15,7 +15,10 @@ void UTD_HandIKComponent::Init(
 	GrabCurve = _GrabCurve;
 	HandIKTargetR = _HandIKTargetR;
 
-	BindTimelineFunctions();
+	IKAction = NewObject<UTD_IKAction>(UTD_IKAction::StaticClass());
+	IKAction->Init(GrabCurve);
+	IKAction->Play();
+	//BindTimelineFunctions();
 	SyncAnimParams();
 }
 
@@ -24,43 +27,78 @@ void UTD_HandIKComponent::BindTimelineFunctions()
 {
 	if (GrabCurve)
 	{
-		UE_LOG(LogTemp, Log, TEXT("Grab curve set"));
-		FOnTimelineFloat TimelineCallback;
-		FOnTimelineEventStatic TimelineFinishedCallback;
+		// Extend
+		FOnTimelineFloat ExtendCallback;
+		FOnTimelineEventStatic ExtendFinishedCallback;
+		
+		ExtendCallback.BindUFunction(this, FName("OnExtendTick"));
+		ExtendFinishedCallback.BindUFunction(this, FName{ TEXT("OnExtendEnd") });
+		ExtendTimeline.AddInterpFloat(GrabCurve, ExtendCallback);
+		ExtendTimeline.SetTimelineFinishedFunc(ExtendFinishedCallback);
+		
+		// Retract
+		FOnTimelineFloat RetractCallback;
+		FOnTimelineEventStatic RetractFinishedCallback;
 
-		TimelineCallback.BindUFunction(this, FName("OnTimelineTick"));
-		TimelineFinishedCallback.BindUFunction(this, FName{ TEXT("OnTimelineEnd") });
-		GrabTimeline.AddInterpFloat(GrabCurve, TimelineCallback);
-		GrabTimeline.SetTimelineFinishedFunc(TimelineFinishedCallback);
+		RetractCallback.BindUFunction(this, FName("OnRetractTick"));
+		RetractFinishedCallback.BindUFunction(this, FName{ TEXT("OnRetractEnd") });
+		RetractTimeline.AddInterpFloat(GrabCurve, RetractCallback);
+		RetractTimeline.SetTimelineFinishedFunc(RetractFinishedCallback);
 	}
 }
+
 
 void UTD_HandIKComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	if (IsValid(IKAction))
+	{
+		IKAction->Tick(DeltaTime);
+	}
 
-	GrabTimeline.TickTimeline(DeltaTime);
+	/*ExtendTimeline.TickTimeline(DeltaTime);
+	RetractTimeline.TickTimeline(DeltaTime);*/
 }
 
-void UTD_HandIKComponent::Grab(USceneComponent* ToGrab, USceneComponent* GrabAnchor)
+void UTD_HandIKComponent::Grab(USceneComponent* ToGrab)
 {
-	StartLocation = GrabAnchor->GetComponentLocation();
+	IKAction->Play();
+	/*StartLocation = HandIKTargetR->GetComponentLocation();
 	EndLocation = ToGrab->GetComponentLocation();
-	GrabTimeline.PlayFromStart();
+	ExtendTimeline.PlayFromStart();*/
 }
 
-void UTD_HandIKComponent::OnTimelineTick()
+void UTD_HandIKComponent::OnExtendTick()
 {
-	float TimelineValue = GrabTimeline.GetPlaybackPosition();
+	UE_LOG(LogTemp, Warning, TEXT("Extend Tick"));
+	//float TimelineValue = ExtendTimeline.GetPlaybackPosition();
+	//float Percent = GrabCurve->GetFloatValue(TimelineValue);
+	//FVector NextLocation = FMath::Lerp(StartLocation, EndLocation, Percent);
+	//HandIKTargetR->SetWorldLocation(NextLocation);
+	//SyncAnimParams();
+}
+
+void UTD_HandIKComponent::OnExtendEnd()
+{
+	OnGrabContact.Broadcast();
+	EndLocation = StartLocation;
+	StartLocation = HandIKTargetR->GetComponentLocation();
+
+	RetractTimeline.PlayFromStart();
+}
+
+void UTD_HandIKComponent::OnRetractTick()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Retracting"));
+	float TimelineValue = RetractTimeline.GetPlaybackPosition();
 	float Percent = GrabCurve->GetFloatValue(TimelineValue);
 	FVector NextLocation = FMath::Lerp(StartLocation, EndLocation, Percent);
 	HandIKTargetR->SetWorldLocation(NextLocation);
 	SyncAnimParams();
 }
 
-void UTD_HandIKComponent::OnTimelineEnd()
-{
-	UE_LOG(LogTemp, Warning, TEXT("END!!"));
+void UTD_HandIKComponent::OnRetractEnd() {
+	UE_LOG(LogTemp, Warning, TEXT("END"));
 }
 
 void UTD_HandIKComponent::SyncAnimParams()

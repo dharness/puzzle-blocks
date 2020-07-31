@@ -3,7 +3,6 @@
 
 #include "TD_PawnMovementComponent.h"
 #include "Engine.h"
-//#include "TD_Logging.h"
 
 
 const float UTD_PawnMovementComponent::BRAKE_TO_STOP_VELOCITY = 10.f;
@@ -49,8 +48,7 @@ void UTD_PawnMovementComponent::TickComponent(float DeltaTime, enum ELevelTick T
         return;
     }
 
-	// TODO: this is 0.5 because i have the hands and red cube hooked up at once
-	const FVector InputVector = ConsumeInputVector() * 0.5f;
+	const FVector InputVector = ConsumeInputVector();
 	FVector ScaledInputVector = InputVector.GetClampedToMaxSize(1.0f);
 
 	TargetVelocity = ComputeTargetVelocity(ScaledInputVector);
