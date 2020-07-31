@@ -11,6 +11,7 @@
 
 #include "TD_IKAction.generated.h"
 
+
 /**
  * 
  */
@@ -18,6 +19,7 @@ UCLASS()
 class TOAD_API UTD_IKAction : public UObject
 {
 	GENERATED_BODY()
+
 
 public:
 	UTD_IKAction();
@@ -38,7 +40,7 @@ public:
 	void Tick(float DeltaTime);
 
 	UFUNCTION()
-	void Init(UCurveFloat* _Curve, void (*TickPtr)());
+	void Init(UCurveFloat* _Curve);
 
 	UFUNCTION()
 	void OnActionTick();
@@ -46,7 +48,4 @@ public:
 	UFUNCTION()
 	void OnActionEnd();
 	
-	UPROPERTY
-	typedef void (*TickPtr)(void);
-
 };

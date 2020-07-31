@@ -5,11 +5,10 @@
 
 UTD_IKAction::UTD_IKAction(){}
 
-void UTD_IKAction::Init(UCurveFloat* _Curve, void (*_TickPtr)())
+void UTD_IKAction::Init(UCurveFloat* _Curve)
 {
 	Curve = _Curve;
 	Timeline = FTimeline{};
-	TickPtr = _TickPtr;
 
 	// Extend
 	FOnTimelineFloat TickCallback;
@@ -30,7 +29,6 @@ void UTD_IKAction::Play()
 void UTD_IKAction::Tick(float DeltaTime)
 {
 	Timeline.TickTimeline(DeltaTime);
-	TickPtr();
 }
 
 void UTD_IKAction::OnActionTick()
