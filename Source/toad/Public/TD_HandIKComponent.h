@@ -3,17 +3,17 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Engine/Engine.h"
 #include "Components/ActorComponent.h"
 #include "Components/SceneComponent.h"
 #include "Components/TimelineComponent.h"
 #include "Curves/CurveFloat.h"
-#include "TD_IKAction.h"
-
+#include "GenericPlatform/GenericPlatformMisc.h"
+#include "TD_IKArgs.h"
+#include "TD_IKExtend.h"
 #include "TD_HandAnimInstance.h"
+
 #include "TD_HandIKComponent.generated.h"
-
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnGrabContact);
 
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
@@ -25,17 +25,14 @@ public:
 	// Sets default values for this component's properties
 	UTD_HandIKComponent();
 
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+
 	UFUNCTION(BlueprintCallable)
 	void Init(
 		UTD_HandAnimInstance* HandAnimInstance,
 		UCurveFloat* GrabCurve,
 		USceneComponent* HandIKTargetR
 	);
-
-public:	
-	void BindTimelineFunctions();
-
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UTD_HandAnimInstance* HandAnimInstance;
@@ -46,32 +43,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	USceneComponent* HandIKTargetR;
 
-	UFUNCTION(BlueprintCallable)
-	void Grab(USceneComponent* ToGrab);
-
 	UFUNCTION()
-	void OnExtendTick();
-
-	UFUNCTION()
-	void OnExtendEnd();
-
-	UFUNCTION()
-	void OnRetractTick();
-
-	UFUNCTION()
-	void OnRetractEnd();
-
 	void SyncAnimParams();
 
-public:
-	UTD_IKAction* IKAction;
+	FTD_IKArgs* IKArgs;
 
-	FTimeline ExtendTimeline;
-	FTimeline RetractTimeline;
-	FVector StartLocation;
-	FVector EndLocation;
+	UFUNCTION(BlueprintCallable, Category = "Dialog", meta = (Latent, WorldContext = "WorldContextObject", LatentInfo = "LatentInfo"))
+	void Extend(UObject* WorldContextObject, USceneComponent* ToGrab, FLatentActionInfo LatentInfo);
 
-public:
-	UPROPERTY(BlueprintAssignable)
-	FOnGrabContact OnGrabContact;	
+	template<typename T>
+	void DelayedFunction(UObject* WorldContextObject, FLatentActionInfo LatentInfo, T* LatentAction);
 };

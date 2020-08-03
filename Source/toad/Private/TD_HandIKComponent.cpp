@@ -1,5 +1,4 @@
 #include "TD_HandIKComponent.h"
-#include "Math/UnrealMathVectorCommon.h"
 
 
 UTD_HandIKComponent::UTD_HandIKComponent()
@@ -15,95 +14,42 @@ void UTD_HandIKComponent::Init(
 	HandAnimInstance = _HandAnimInstance;
 	GrabCurve = _GrabCurve;
 	HandIKTargetR = _HandIKTargetR;
+	IKArgs = new FTD_IKArgs();
+	IKArgs->HandIKTargetR = HandIKTargetR;
 
-	IKAction = NewObject<UTD_IKAction>(UTD_IKAction::StaticClass());
-	IKAction->Init(GrabCurve);
-	IKAction->Play();
-	//BindTimelineFunctions();
 	SyncAnimParams();
 }
 
-
-void UTD_HandIKComponent::BindTimelineFunctions()
+void UTD_HandIKComponent::Extend(UObject* WorldContextObject, USceneComponent* ToGrab, struct FLatentActionInfo LatentInfo)
 {
-	if (GrabCurve)
-	{
-		// Extend
-		FOnTimelineFloat ExtendCallback;
-		FOnTimelineEventStatic ExtendFinishedCallback;
-		
-		ExtendCallback.BindUFunction(this, FName("OnExtendTick"));
-		ExtendFinishedCallback.BindUFunction(this, FName{ TEXT("OnExtendEnd") });
-		ExtendTimeline.AddInterpFloat(GrabCurve, ExtendCallback);
-		ExtendTimeline.SetTimelineFinishedFunc(ExtendFinishedCallback);
-		
-		// Retract
-		FOnTimelineFloat RetractCallback;
-		FOnTimelineEventStatic RetractFinishedCallback;
-
-		RetractCallback.BindUFunction(this, FName("OnRetractTick"));
-		RetractFinishedCallback.BindUFunction(this, FName{ TEXT("OnRetractEnd") });
-		RetractTimeline.AddInterpFloat(GrabCurve, RetractCallback);
-		RetractTimeline.SetTimelineFinishedFunc(RetractFinishedCallback);
-	}
+	auto StartLocation = HandIKTargetR->GetComponentLocation();
+	auto EndLocation = ToGrab->GetComponentLocation();
+	FTD_IKExtend* IKExtend = new FTD_IKExtend(LatentInfo, GrabCurve, StartLocation, EndLocation, IKArgs);
+	DelayedFunction<FTD_IKExtend>(WorldContextObject, LatentInfo, IKExtend);
 }
-
 
 void UTD_HandIKComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-	if (IsValid(IKAction))
-	{
-		IKAction->Tick(DeltaTime);
-	}
-
-	/*ExtendTimeline.TickTimeline(DeltaTime);
-	RetractTimeline.TickTimeline(DeltaTime);*/
-}
-
-void UTD_HandIKComponent::Grab(USceneComponent* ToGrab)
-{
-	IKAction->Play();
-	/*StartLocation = HandIKTargetR->GetComponentLocation();
-	EndLocation = ToGrab->GetComponentLocation();
-	ExtendTimeline.PlayFromStart();*/
-}
-
-void UTD_HandIKComponent::OnExtendTick()
-{
-	UE_LOG(LogTemp, Warning, TEXT("Extend Tick"));
-	//float TimelineValue = ExtendTimeline.GetPlaybackPosition();
-	//float Percent = GrabCurve->GetFloatValue(TimelineValue);
-	//FVector NextLocation = FMath::Lerp(StartLocation, EndLocation, Percent);
-	//HandIKTargetR->SetWorldLocation(NextLocation);
-	//SyncAnimParams();
-}
-
-void UTD_HandIKComponent::OnExtendEnd()
-{
-	OnGrabContact.Broadcast();
-	EndLocation = StartLocation;
-	StartLocation = HandIKTargetR->GetComponentLocation();
-
-	RetractTimeline.PlayFromStart();
-}
-
-void UTD_HandIKComponent::OnRetractTick()
-{
-	UE_LOG(LogTemp, Warning, TEXT("Retracting"));
-	float TimelineValue = RetractTimeline.GetPlaybackPosition();
-	float Percent = GrabCurve->GetFloatValue(TimelineValue);
-	FVector NextLocation = FMath::Lerp(StartLocation, EndLocation, Percent);
-	HandIKTargetR->SetWorldLocation(NextLocation);
 	SyncAnimParams();
-}
-
-void UTD_HandIKComponent::OnRetractEnd() {
-	UE_LOG(LogTemp, Warning, TEXT("END"));
 }
 
 void UTD_HandIKComponent::SyncAnimParams()
 {
 	// We use relative location because the FABRIK node in the anim controller expects it
 	HandAnimInstance->HandIKTargetR.SetLocation(HandIKTargetR->GetRelativeLocation());
+}
+
+template<typename T>
+void UTD_HandIKComponent::DelayedFunction(UObject* WorldContextObject, struct FLatentActionInfo LatentInfo, T* LatentAction)
+
+{
+	if (UWorld* World = GEngine->GetWorldFromContextObjectChecked(WorldContextObject))
+	{
+		FLatentActionManager& LatentActionManager = World->GetLatentActionManager();
+		if (LatentActionManager.FindExistingAction<T>(LatentInfo.CallbackTarget, LatentInfo.UUID) == NULL)
+		{
+			LatentActionManager.AddNewAction(LatentInfo.CallbackTarget, LatentInfo.UUID, LatentAction);
+		}
+	}
 }

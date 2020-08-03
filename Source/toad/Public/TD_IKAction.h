@@ -22,8 +22,6 @@ class TOAD_API UTD_IKAction : public UObject
 
 
 public:
-	UTD_IKAction();
-
 	UPROPERTY()
 	FString ActionName;
 
@@ -37,15 +35,15 @@ public:
 	void Play();
 
 	UFUNCTION()
-	void Tick(float DeltaTime);
+	virtual FString Tick(float DeltaTime);
 
 	UFUNCTION()
 	void Init(UCurveFloat* _Curve);
 
 	UFUNCTION()
-	void OnActionTick();
+	virtual void OnActionTick();
 
 	UFUNCTION()
-	void OnActionEnd();
+	virtual void OnActionEnd();
 	
 };
