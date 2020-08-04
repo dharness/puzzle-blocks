@@ -1,4 +1,6 @@
 #pragma once
+
+#include "CoreMinimal.h"
 #include "TD_IKArgs.generated.h"
 
 USTRUCT()

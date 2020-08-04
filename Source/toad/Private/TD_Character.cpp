@@ -15,9 +15,8 @@ void ATD_Character::Tick(float DeltaTime)
 	UpdateInteractable();
 }
 
-void ATD_Character::Init(USceneComponent* NextHolster, UPrimitiveComponent* NextGrabRegion)
+void ATD_Character::Init(UPrimitiveComponent* NextGrabRegion)
 {
-	Holster = NextHolster;
 	GrabRegion = NextGrabRegion;
 
 	GrabRegion->OnComponentBeginOverlap.AddDynamic(this, &ATD_Character::OnOverlapBegin);
@@ -41,10 +40,14 @@ void ATD_Character::OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* Ot
 	}
 }
 
-void ATD_Character::Grab(AActor* ToGrab)
+void ATD_Character::AttachToHolster(AActor* ToGrab, USceneComponent* Holster, bool bKeepHolsterLocation)
 {
 	if (IsValid(ToGrab))
 	{
+		if (!bKeepHolsterLocation)
+		{
+			Holster->SetWorldLocation(ToGrab->GetActorLocation());
+		}
 		UStaticMeshComponent* StaticMesh = Cast<UStaticMeshComponent>(ToGrab->GetComponentByClass(UStaticMeshComponent::StaticClass()));
 		StaticMesh->SetSimulatePhysics(false);
 		HeldObjectCollisionProfileName = StaticMesh->GetCollisionProfileName();

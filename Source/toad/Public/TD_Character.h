@@ -18,10 +18,10 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	UFUNCTION(BlueprintCallable)
-	void Init(USceneComponent* Holster, UPrimitiveComponent* GrabRegion);
+	void Init(UPrimitiveComponent* GrabRegion);
 
 	UFUNCTION(BlueprintCallable)
-	void Grab(AActor* ToGrab);
+	void AttachToHolster(AActor* ToGrab, USceneComponent* Holster, bool bKeepHolsterLocation);
 
 	UFUNCTION(BlueprintCallable)
 	void Throw(float Strength);
@@ -40,8 +40,6 @@ private:
 	TArray<AActor*> InteractableActors;
 	UPROPERTY()
 	UPrimitiveComponent* GrabRegion;
-	UPROPERTY()
-	USceneComponent* Holster;
 	UPROPERTY()
 	AActor* CurrentInteractable;
 	UPROPERTY()
