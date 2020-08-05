@@ -1,5 +1,5 @@
 #include "TD_Character.h"
-#include "Holdable.h"
+#include "TD_Holdable.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Components/StaticMeshComponent.h"
 
@@ -124,5 +124,5 @@ void ATD_Character::UpdateInteractables(UPrimitiveComponent* OverlappedComp)
 
 bool ATD_Character::IsInteractable(AActor* Actor)
 {
-	return UKismetSystemLibrary::DoesImplementInterface(Actor, UHoldable::StaticClass());
+	return UKismetSystemLibrary::DoesImplementInterface(Actor, UTD_Holdable::StaticClass());
 }
