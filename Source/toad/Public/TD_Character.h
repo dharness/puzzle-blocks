@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 #include "Components/PrimitiveComponent.h"
+#include "TD_HoldableBase.h"
+#include "TD_IKTarget.h"
 #include "TD_Character.generated.h"
 
 UCLASS(Blueprintable)
@@ -21,29 +23,29 @@ public:
 	void Init(UPrimitiveComponent* GrabRegion);
 
 	UFUNCTION(BlueprintCallable)
-	void AttachToHolster(AActor* ToGrab, USceneComponent* Holster, bool bKeepHolsterLocation);
+	void AttachToHolster(ATD_HoldableBase* ToGrab, USceneComponent* Holster, USceneComponent* RightHandle, bool bKeepHolsterLocation);
 
 	UFUNCTION(BlueprintCallable)
 	void Throw(float Strength);
 
 	UFUNCTION(BlueprintCallable, Category = "TD_Interaction")
-	void GetInteractable(bool& Success, AActor*& Interactable);
+	void GetHoldable(bool& Success, ATD_HoldableBase*& Holdable);
 
 	UFUNCTION(BlueprintCallable, Category = "TD_Interaction")
-	void GetHeldObject(bool& Success, AActor*& HeldObject);
+	void GetHeldObject(bool& Success, ATD_HoldableBase*& HeldObject);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "TD_Interaction")
 	void OnInteractableChanged();
 
 private:
 	UPROPERTY()
-	TArray<AActor*> InteractableActors;
+	TArray<ATD_HoldableBase*> Holdables;
 	UPROPERTY()
 	UPrimitiveComponent* GrabRegion;
 	UPROPERTY()
-	AActor* CurrentInteractable;
+	ATD_HoldableBase* CurrentHoldable;
 	UPROPERTY()
-	AActor* HeldObject;
+	ATD_HoldableBase* HeldObject;
 	UPROPERTY()
 	FName HeldObjectCollisionProfileName;
 	UPROPERTY()
@@ -53,7 +55,7 @@ private:
 	void OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 	UFUNCTION()
 	void OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
-	void UpdateInteractables(UPrimitiveComponent* OverlappedComp);
-	void UpdateInteractable();
+	void UpdateHoldables(UPrimitiveComponent* OverlappedComp);
+	void UpdateHoldables();
 	bool IsInteractable(AActor* Actor);
 };

@@ -12,11 +12,23 @@ ATD_Character::ATD_Character()
 void ATD_Character::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	UpdateInteractable();
+	UpdateHoldables();
 }
 
 void ATD_Character::Init(UPrimitiveComponent* NextGrabRegion)
 {
+	FActorSpawnParameters SpawnInfo;
+	ATD_IKTarget* Actor = GetWorld()->SpawnActor<ATD_IKTarget>(ATD_IKTarget::StaticClass(), GetActorLocation(), GetActorRotation(), SpawnInfo);
+	auto AttachmentRules = FAttachmentTransformRules(
+		EAttachmentRule::SnapToTarget,
+		EAttachmentRule::SnapToTarget,
+		EAttachmentRule::SnapToTarget,
+		false
+	);
+	Actor->AttachToActor(this, AttachmentRules);
+	UE_LOG(LogTemp, Warning, TEXT("eggman %b"), IsValid(Actor));
+	//AActor* HandIKTargetR = (AActor*)GetWorld()->SpawnActor(AActor::StaticClass(), FName(TEXT("HandIKTargetR")), GetActorLocation());
+
 	GrabRegion = NextGrabRegion;
 
 	GrabRegion->OnComponentBeginOverlap.AddDynamic(this, &ATD_Character::OnOverlapBegin);
@@ -25,12 +37,12 @@ void ATD_Character::Init(UPrimitiveComponent* NextGrabRegion)
 
 void ATD_Character::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	UpdateInteractables(OverlappedComp);
+	UpdateHoldables(OverlappedComp);
 }
 
 void ATD_Character::OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	UpdateInteractables(OverlappedComp);
+	UpdateHoldables(OverlappedComp);
 	if (HasJustThrown && OtherActor == HeldObject)
 	{
 		UStaticMeshComponent* StaticMesh = Cast<UStaticMeshComponent>(HeldObject->GetComponentByClass(UStaticMeshComponent::StaticClass()));
@@ -40,10 +52,17 @@ void ATD_Character::OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* Ot
 	}
 }
 
-void ATD_Character::AttachToHolster(AActor* ToGrab, USceneComponent* Holster, bool bKeepHolsterLocation)
+void ATD_Character::AttachToHolster(ATD_HoldableBase* ToGrab, USceneComponent* Holster, USceneComponent* RightHandle, bool bKeepHolsterLocation)
 {
 	if (IsValid(ToGrab))
 	{
+		auto AttachmentRules = FAttachmentTransformRules(
+			EAttachmentRule::SnapToTarget,
+			EAttachmentRule::SnapToTarget,
+			EAttachmentRule::KeepWorld,
+			false
+		);
+
 		if (!bKeepHolsterLocation)
 		{
 			Holster->SetWorldLocation(ToGrab->GetActorLocation());
@@ -52,12 +71,6 @@ void ATD_Character::AttachToHolster(AActor* ToGrab, USceneComponent* Holster, bo
 		StaticMesh->SetSimulatePhysics(false);
 		HeldObjectCollisionProfileName = StaticMesh->GetCollisionProfileName();
 		StaticMesh->SetCollisionProfileName(FName(TEXT("HeldObject")));
-		auto AttachmentRules = FAttachmentTransformRules(
-			EAttachmentRule::SnapToTarget,
-			EAttachmentRule::SnapToTarget,
-			EAttachmentRule::KeepWorld,
-			false
-		);
 		ToGrab->AttachToComponent(Holster, AttachmentRules);
 		HeldObject = ToGrab;
 	}
@@ -82,46 +95,47 @@ void ATD_Character::Throw(float Strength)
 	HasJustThrown = true;
 }
 
-void ATD_Character::GetInteractable(bool& Success, AActor*& Interactable)
+void ATD_Character::GetHoldable(bool& Success, ATD_HoldableBase*& Holdable)
 {
-	Success = CurrentInteractable != nullptr;
-	Interactable = CurrentInteractable;
+	Success = CurrentHoldable != nullptr;
+	Holdable = CurrentHoldable;
 }
 
-void ATD_Character::GetHeldObject(bool& Success, AActor*& _HeldObject)
+void ATD_Character::GetHeldObject(bool& Success, ATD_HoldableBase*& _HeldObject)
 {
 	Success = HeldObject != nullptr;
 	_HeldObject = HeldObject;
 }
 
-void ATD_Character::UpdateInteractable()
+void ATD_Character::UpdateHoldables()
 {
-	auto NextInteractable = InteractableActors.IsValidIndex(0) ? InteractableActors[0] : nullptr;
+	auto NextInteractable = Holdables.IsValidIndex(0) ? Holdables[0] : nullptr;
 
-	if (NextInteractable != CurrentInteractable)
+	if (NextInteractable != CurrentHoldable)
 	{
-		CurrentInteractable = NextInteractable;
+		CurrentHoldable = NextInteractable;
 		OnInteractableChanged();
 	}
 }
 
-void ATD_Character::UpdateInteractables(UPrimitiveComponent* OverlappedComp)
+void ATD_Character::UpdateHoldables(UPrimitiveComponent* OverlappedComp)
 {
 	TArray<AActor*> OverlappingActors;
 	OverlappedComp->GetOverlappingActors(OverlappingActors);
 
-	TArray<AActor*> NextInteractableActors;
+	TArray<ATD_HoldableBase*> NextHoldables;
 	for (auto* Actor : OverlappingActors)
 	{
-		bool IsInteractable = this->IsInteractable(Actor);
-		if (IsInteractable)
+		ATD_HoldableBase* Holdable = Cast<ATD_HoldableBase>(Actor);
+		if (IsValid(Holdable))
 		{
-			NextInteractableActors.Emplace(Actor);
+			NextHoldables.Emplace(Holdable);
 		}
 	}
-	InteractableActors = NextInteractableActors;
+	Holdables = NextHoldables;
 }
 
+// deprecated?
 bool ATD_Character::IsInteractable(AActor* Actor)
 {
 	return UKismetSystemLibrary::DoesImplementInterface(Actor, UTD_Holdable::StaticClass());

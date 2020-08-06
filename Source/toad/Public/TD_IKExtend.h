@@ -16,7 +16,10 @@ public:
 
 private:
 	FTD_IKArgs* IKArgs;
+
+	UPROPERTY()
 	FTimeline Timeline;
+
 	UCurveFloat* Curve;
 	FVector From;
 	FVector To;

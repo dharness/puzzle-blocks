@@ -32,33 +32,45 @@ void UTD_HandIKComponent::Init(
 	SyncAnimParams();
 }
 
-void UTD_HandIKComponent::Extend(UObject* WorldContextObject, USceneComponent* ToGrab, UCurveFloat* GrabCurve, struct FLatentActionInfo LatentInfo)
+void UTD_HandIKComponent::Extend(UObject* WorldContextObject, struct FLatentActionInfo LatentInfo, UCurveFloat* GrabCurve, USceneComponent* RightHandle)
 {
 	auto StartLocation = HandIKTargetR->GetComponentLocation();
-	auto EndLocation = ToGrab->GetComponentLocation();
-
-	// Pick End Location based on object size
-	// then make the IK the child of some handle object attached to the object
-	// then anchor the object to the holster
-	// then move the holster
+	auto EndLocation = RightHandle->GetComponentLocation();
 
 	FTD_IKExtend* IKExtend = new FTD_IKExtend(LatentInfo, GrabCurve, StartLocation, EndLocation, IKArgs);
 	DelayedFunction<FTD_IKExtend>(WorldContextObject, LatentInfo, IKExtend);
 }
 
-void UTD_HandIKComponent::RetractHolding(UObject* WorldContextObject, UCurveFloat* Curve, struct FLatentActionInfo LatentInfo)
+void UTD_HandIKComponent::AttachIKToHandles(USceneComponent* RightHandle)
 {
 	auto AttachmentRules = FAttachmentTransformRules(
 		EAttachmentRule::KeepWorld,
 		EAttachmentRule::KeepWorld,
 		EAttachmentRule::KeepWorld,
-		false
+		true
 	);
-	HandIKTargetR->AttachToComponent(HolsterCenter, AttachmentRules);
+	HandIKTargetR->AttachToComponent(RightHandle, AttachmentRules);
+}
+
+void UTD_HandIKComponent::RetractHolding(UObject* WorldContextObject, struct FLatentActionInfo LatentInfo, UCurveFloat* Curve, ATD_HoldableBase* ToHold)
+{
+	auto AttachmentRules = FAttachmentTransformRules(
+		EAttachmentRule::SnapToTarget,
+		EAttachmentRule::KeepWorld,
+		EAttachmentRule::KeepWorld,
+		true
+	);
+
+	HolsterCenter->SetWorldLocation(ToHold->GetActorLocation());
+	ToHold->GetRootComponent()->AttachToComponent(HolsterCenter, AttachmentRules);
+	//ToHold->AttachToActor(this->GetOwner(), AttachmentRules, FName(TEXT("TestSocket")));
+	//ToHold->AttachToComponent()
+	return;
 
 	auto StartLocation = HolsterCenter->GetComponentLocation();
 	auto EndLocation = GetOwner()->GetRootComponent()->GetComponentLocation();
-	EndLocation.SetComponentForAxis(EAxis::Z, 100.0f);
+	auto ToHoldHalfHeight = ToHold->GetHeight() * 0.5;
+	EndLocation.SetComponentForAxis(EAxis::Z, EndLocation.Z + ToHoldHalfHeight);
 
 	FTD_IKMoveTo* IKMoveTo = new FTD_IKMoveTo(LatentInfo, Curve, StartLocation, EndLocation, HolsterCenter);
 	DelayedFunction<FTD_IKMoveTo>(WorldContextObject, LatentInfo, IKMoveTo);

@@ -13,6 +13,7 @@
 #include "TD_IKArgs.h"
 #include "TD_IKExtend.h"
 #include "TD_IKMoveTo.h"
+#include "TD_HoldableBase.h"
 #include "TD_HandAnimInstance.h"
 
 #include "TD_HandIKComponent.generated.h"
@@ -66,10 +67,13 @@ public:
 	FTD_IKArgs* IKArgs;
 
 	UFUNCTION(BlueprintCallable, Category = "IKActions", meta = (Latent, WorldContext = "WorldContextObject", LatentInfo = "LatentInfo"))
-	void Extend(UObject* WorldContextObject, USceneComponent* ToGrab, UCurveFloat* _GrabCurve, FLatentActionInfo LatentInfo);
+	void Extend(UObject* WorldContextObject, struct FLatentActionInfo LatentInfo, UCurveFloat* GrabCurve, USceneComponent* RightHandle);
+
+	UFUNCTION(BlueprintCallable, Category = "IKActions")
+	void AttachIKToHandles(USceneComponent* RightHandle);
 
 	UFUNCTION(BlueprintCallable, Category = "IKActions", meta = (Latent, WorldContext = "WorldContextObject", LatentInfo = "LatentInfo"))
-	void RetractHolding(UObject* WorldContextObject, UCurveFloat* Curve, FLatentActionInfo LatentInfo);
+	void RetractHolding(UObject* WorldContextObject, struct FLatentActionInfo LatentInfo, UCurveFloat* Curve, ATD_HoldableBase* ToHold);
 
 	template<typename T>
 	void DelayedFunction(UObject* WorldContextObject, FLatentActionInfo LatentInfo, T* LatentAction);

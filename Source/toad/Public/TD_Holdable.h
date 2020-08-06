@@ -3,22 +3,18 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameFramework/Actor.h"
 #include "UObject/Interface.h"
 #include "TD_Holdable.generated.h"
 
 
-UINTERFACE(MinimalAPI)
-class UTD_Holdable : public UInterface
-{
-	GENERATED_BODY()
-
-	FVector GetRightHandleLocation();
-};
+UINTERFACE(MinimalAPI, Blueprintable)
+class UTD_Holdable : public UInterface { GENERATED_BODY() };
 
 class TOAD_API ITD_Holdable
 {
 	GENERATED_BODY()
 
-	UFUNCTION()
-	virtual FVector GetRightHandleLocation();
+public:
+	USceneComponent* GetRightHandle();
 };
