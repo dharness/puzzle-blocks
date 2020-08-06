@@ -10,12 +10,12 @@
 class FTD_IKMoveTo : public FTD_DelayedAction
 {
 public:
-	FTD_IKMoveTo(const FLatentActionInfo& LatentInfo, UCurveFloat* Curve, FVector From, FVector To, USceneComponent* Target);
+	FTD_IKMoveTo(const FLatentActionInfo& LatentInfo, UCurveFloat* Curve, FVector From, FVector To, AActor* Target);
 
 	void UpdateOperation(FLatentResponse& Response) override;
 
 private:
-	USceneComponent* Target;
+	AActor* Target;
 	FTimeline Timeline;
 	UCurveFloat* Curve;
 	FVector From;

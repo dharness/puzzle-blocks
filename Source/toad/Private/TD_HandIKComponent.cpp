@@ -8,9 +8,6 @@ UTD_HandIKComponent::UTD_HandIKComponent()
 
 void UTD_HandIKComponent::Init(
 	  UTD_HandAnimInstance* _HandAnimInstance
-	, USceneComponent* _HandIKTargetR
-	, USceneComponent* _HandIKTargetL
-	, USceneComponent* _HolsterCenter
 	, USceneComponent* _HolsterR
 	, USceneComponent* _HolsterL
 	, USkeletalMeshComponent* _HandR
@@ -18,13 +15,14 @@ void UTD_HandIKComponent::Init(
 )
 {
 	HandAnimInstance = _HandAnimInstance;
-	HandIKTargetR = _HandIKTargetR;
-	HandIKTargetL = _HandIKTargetL;
-	HolsterCenter = _HolsterCenter;
 	HolsterR = _HolsterR;
 	HolsterL = _HolsterL;
 	HandR = _HandR;
 	HandL = _HandL;
+
+
+	HandIKTargetR = MakeIKTarget(FName(TEXT("HandIKTargetR")));
+	HolsterCenter = MakeIKTarget(FName(TEXT("HolsterCenter")));
 
 	IKArgs = new FTD_IKArgs();
 	IKArgs->HandIKTargetR = HandIKTargetR;
@@ -32,43 +30,59 @@ void UTD_HandIKComponent::Init(
 	SyncAnimParams();
 }
 
+ATD_IKTarget* UTD_HandIKComponent::MakeIKTarget(const FName Name) const
+{
+	const FActorSpawnParameters SpawnInfo;
+
+	ATD_IKTarget* IKTarget = GetWorld()->SpawnActor<ATD_IKTarget>(SpawnInfo);
+	IKTarget->SetActorLabel(Name.ToString());
+
+	const auto AttachmentRules = FAttachmentTransformRules(
+		EAttachmentRule::SnapToTarget,
+		EAttachmentRule::SnapToTarget,
+		EAttachmentRule::SnapToTarget,
+		false
+	);
+	IKTarget->AttachToActor(GetOwner(), AttachmentRules);
+
+	return IKTarget;
+}
+
 void UTD_HandIKComponent::Extend(UObject* WorldContextObject, struct FLatentActionInfo LatentInfo, UCurveFloat* GrabCurve, USceneComponent* RightHandle)
 {
-	auto StartLocation = HandIKTargetR->GetComponentLocation();
-	auto EndLocation = RightHandle->GetComponentLocation();
+	const auto StartLocation = HandIKTargetR->GetActorLocation();
+	const auto EndLocation = RightHandle->GetComponentLocation();
 
 	FTD_IKExtend* IKExtend = new FTD_IKExtend(LatentInfo, GrabCurve, StartLocation, EndLocation, IKArgs);
 	DelayedFunction<FTD_IKExtend>(WorldContextObject, LatentInfo, IKExtend);
 }
 
-void UTD_HandIKComponent::AttachIKToHandles(USceneComponent* RightHandle)
+void UTD_HandIKComponent::AttachIKToObject(ATD_HoldableBase* ToHold) const
 {
-	auto AttachmentRules = FAttachmentTransformRules(
+	const auto AttachmentRules = FAttachmentTransformRules(
 		EAttachmentRule::KeepWorld,
 		EAttachmentRule::KeepWorld,
 		EAttachmentRule::KeepWorld,
-		true
+		false
 	);
-	HandIKTargetR->AttachToComponent(RightHandle, AttachmentRules);
+	ToHold->PrepareForHolding();
+	HandIKTargetR->AttachToActor(ToHold, AttachmentRules);
 }
 
 void UTD_HandIKComponent::RetractHolding(UObject* WorldContextObject, struct FLatentActionInfo LatentInfo, UCurveFloat* Curve, ATD_HoldableBase* ToHold)
 {
-	auto AttachmentRules = FAttachmentTransformRules(
-		EAttachmentRule::SnapToTarget,
+	const auto AttachmentRules = FAttachmentTransformRules(
 		EAttachmentRule::KeepWorld,
 		EAttachmentRule::KeepWorld,
-		true
+		EAttachmentRule::KeepWorld,
+		false
 	);
 
-	HolsterCenter->SetWorldLocation(ToHold->GetActorLocation());
-	ToHold->GetRootComponent()->AttachToComponent(HolsterCenter, AttachmentRules);
-	//ToHold->AttachToActor(this->GetOwner(), AttachmentRules, FName(TEXT("TestSocket")));
-	//ToHold->AttachToComponent()
-	return;
+	HolsterCenter->SetActorLocation(ToHold->GetActorLocation());
+	ToHold->AttachToActor(HolsterCenter, AttachmentRules);
 
-	auto StartLocation = HolsterCenter->GetComponentLocation();
-	auto EndLocation = GetOwner()->GetRootComponent()->GetComponentLocation();
+	auto StartLocation = HolsterCenter->GetActorLocation();
+	auto EndLocation = GetOwner()->GetActorLocation();
 	auto ToHoldHalfHeight = ToHold->GetHeight() * 0.5;
 	EndLocation.SetComponentForAxis(EAxis::Z, EndLocation.Z + ToHoldHalfHeight);
 
@@ -85,7 +99,7 @@ void UTD_HandIKComponent::TickComponent(float DeltaTime, ELevelTick TickType, FA
 void UTD_HandIKComponent::SyncAnimParams()
 {
 	// We use relative location because the FABRIK node in the anim controller expects it
-	FVector relativeLoc = HandR->GetComponentTransform().InverseTransformPosition(HandIKTargetR->GetComponentLocation());
+	FVector relativeLoc = HandR->GetComponentTransform().InverseTransformPosition(HandIKTargetR->GetActorLocation());
 	HandAnimInstance->HandIKTargetR.SetLocation(relativeLoc);
 }
 

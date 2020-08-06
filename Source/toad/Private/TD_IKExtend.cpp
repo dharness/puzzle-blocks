@@ -25,6 +25,6 @@ void FTD_IKExtend::UpdateOperation(FLatentResponse& Response)
 	float TimelineValue = Timeline.GetPlaybackPosition();
 	float Percent = Curve->GetFloatValue(TimelineValue);
 	FVector NextLocation = FMath::Lerp(From, To, Percent);
-	IKArgs->HandIKTargetR->SetWorldLocation(NextLocation);
+	IKArgs->HandIKTargetR->SetActorLocation(NextLocation);
 	IKArgs->TimelineValue = TimelineValue;
 }

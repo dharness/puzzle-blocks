@@ -1,6 +1,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "TD_IKTarget.h"
+
 #include "TD_IKArgs.generated.h"
 
 USTRUCT()
@@ -12,5 +14,5 @@ struct FTD_IKArgs
     float TimelineValue = 0;
 
     UPROPERTY()
-    USceneComponent* HandIKTargetR;
+    ATD_IKTarget* HandIKTargetR;
 };

@@ -17,18 +17,6 @@ void ATD_Character::Tick(float DeltaTime)
 
 void ATD_Character::Init(UPrimitiveComponent* NextGrabRegion)
 {
-	FActorSpawnParameters SpawnInfo;
-	ATD_IKTarget* Actor = GetWorld()->SpawnActor<ATD_IKTarget>(ATD_IKTarget::StaticClass(), GetActorLocation(), GetActorRotation(), SpawnInfo);
-	auto AttachmentRules = FAttachmentTransformRules(
-		EAttachmentRule::SnapToTarget,
-		EAttachmentRule::SnapToTarget,
-		EAttachmentRule::SnapToTarget,
-		false
-	);
-	Actor->AttachToActor(this, AttachmentRules);
-	UE_LOG(LogTemp, Warning, TEXT("eggman %b"), IsValid(Actor));
-	//AActor* HandIKTargetR = (AActor*)GetWorld()->SpawnActor(AActor::StaticClass(), FName(TEXT("HandIKTargetR")), GetActorLocation());
-
 	GrabRegion = NextGrabRegion;
 
 	GrabRegion->OnComponentBeginOverlap.AddDynamic(this, &ATD_Character::OnOverlapBegin);

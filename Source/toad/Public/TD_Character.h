@@ -6,7 +6,6 @@
 #include "GameFramework/Pawn.h"
 #include "Components/PrimitiveComponent.h"
 #include "TD_HoldableBase.h"
-#include "TD_IKTarget.h"
 #include "TD_Character.generated.h"
 
 UCLASS(Blueprintable)

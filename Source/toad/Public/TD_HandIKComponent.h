@@ -13,6 +13,7 @@
 #include "TD_IKArgs.h"
 #include "TD_IKExtend.h"
 #include "TD_IKMoveTo.h"
+#include "TD_IKTarget.h"
 #include "TD_HoldableBase.h"
 #include "TD_HandAnimInstance.h"
 
@@ -33,9 +34,6 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void Init(
 		  UTD_HandAnimInstance* HandAnimInstance
-		, USceneComponent* HandIKTargetR
-		, USceneComponent* HandIKTargetL
-		, USceneComponent* HolsterCenter
 		, USceneComponent* HolsterR
 		, USceneComponent* HolsterL
 		, USkeletalMeshComponent* HandR
@@ -45,12 +43,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UTD_HandAnimInstance* HandAnimInstance;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	USceneComponent* HandIKTargetR;
+	ATD_IKTarget* HandIKTargetR;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	USceneComponent* HandIKTargetL;
+	ATD_IKTarget* HandIKTargetL;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	ATD_IKTarget* HolsterCenter;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	USceneComponent* HolsterCenter;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	USceneComponent* HolsterR;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -63,6 +61,9 @@ public:
 
 	UFUNCTION()
 	void SyncAnimParams();
+	
+	UFUNCTION()
+	ATD_IKTarget* MakeIKTarget(FName Name) const;
 
 	FTD_IKArgs* IKArgs;
 
@@ -70,7 +71,7 @@ public:
 	void Extend(UObject* WorldContextObject, struct FLatentActionInfo LatentInfo, UCurveFloat* GrabCurve, USceneComponent* RightHandle);
 
 	UFUNCTION(BlueprintCallable, Category = "IKActions")
-	void AttachIKToHandles(USceneComponent* RightHandle);
+	void AttachIKToObject(ATD_HoldableBase* ToHold) const;
 
 	UFUNCTION(BlueprintCallable, Category = "IKActions", meta = (Latent, WorldContext = "WorldContextObject", LatentInfo = "LatentInfo"))
 	void RetractHolding(UObject* WorldContextObject, struct FLatentActionInfo LatentInfo, UCurveFloat* Curve, ATD_HoldableBase* ToHold);

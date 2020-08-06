@@ -15,17 +15,21 @@ class ATD_HoldableBase : public AActor, public ITD_Holdable
 
 public:
 
-	UPROPERTY(BlueprintReadWrite)
+	ATD_HoldableBase();
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	UStaticMeshComponent* Mesh;
 
-	UPROPERTY(BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	USceneComponent* RightHandle;
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
 	USceneComponent* GetRightHandle();
 	USceneComponent* GetRightHandle_Implementation();
 
-	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
+	UFUNCTION(BlueprintCallable)
 	float GetHeight();
-	float GetHeight_Implementation();
+
+	UFUNCTION(BlueprintCallable)
+	void PrepareForHolding();
 };
