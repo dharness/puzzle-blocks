@@ -41,6 +41,9 @@ public:
 	);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FVector PalmNormalR;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UTD_HandAnimInstance* HandAnimInstance;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	ATD_IKTarget* HandIKTargetR;
