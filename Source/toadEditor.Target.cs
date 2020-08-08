@@ -10,6 +10,6 @@ public class toadEditorTarget : TargetRules
 		Type = TargetType.Editor;
 		DefaultBuildSettings = BuildSettingsVersion.V2;
 
-		ExtraModuleNames.AddRange( new string[] { "toad" } );
+		ExtraModuleNames.AddRange( new string[] { "toad", "toadEditor" } );
 	}
 }
