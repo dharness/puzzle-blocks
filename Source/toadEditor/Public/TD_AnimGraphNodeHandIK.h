@@ -1,30 +1,41 @@
 #pragma once
 
-#include "AnimGraphNode_Base.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "AnimGraphNode_SkeletalControlBase.h"
 #include "TD_AnimNodeHandIK.h"
 #include "TD_AnimGraphNodeHandIK.generated.h"
 
-UCLASS()
-class TOADEDITOR_API UTD_AnimGraphNodeHandIK : public UAnimGraphNode_Base
-{
-	GENERATED_BODY()
 
-public:
+class FPrimitiveDrawInterface;
+class USkeletalMeshComponent;
+
+UCLASS()
+class UTD_AnimGraphNodeHandIK : public UAnimGraphNode_SkeletalControlBase
+{
+	GENERATED_UCLASS_BODY()
+
 	UPROPERTY(EditAnywhere, Category = Settings)
 	FTD_AnimNodeHandIK Node;
 
-	//~ Begin UEdGraphNode Interface.
-	virtual FLinearColor GetNodeTitleColor() const override;
-	virtual FText GetTooltipText() const override;
+public:
+	// UObject interface
+	virtual void Serialize(FArchive& Ar) override;
+	// End of UObject interface
+
+	// UEdGraphNode interface
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
-	//~ End UEdGraphNode Interface.
+	// End of UEdGraphNode interface
 
-	//~ Begin UAnimGraphNode_Base Interface
-	virtual FString GetNodeCategory() const override;
-	//~ End UAnimGraphNode_Base Interface
-
-	UTD_AnimGraphNodeHandIK(const FObjectInitializer& ObjectInitializer);
+	// UAnimGraphNode_Base interface
+	virtual void CopyNodeDataToPreviewNode(FAnimNode_Base* AnimNode) override;
+	virtual FEditorModeID GetEditorMode() const override;
+	virtual void Draw(FPrimitiveDrawInterface* PDI, USkeletalMeshComponent* PreviewSkelMeshComp) const override;
+	// End of UAnimGraphNode_Base interface
 
 protected:
-	virtual FText GetControllerDescription() const;
+	// UAnimGraphNode_SkeletalControlBase interface
+	virtual FText GetControllerDescription() const override;
+	virtual const FAnimNode_SkeletalControlBase* GetNode() const override { return &Node; }
+	// End of UAnimGraphNode_SkeletalControlBase interface
 };

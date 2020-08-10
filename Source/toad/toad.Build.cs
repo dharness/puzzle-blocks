@@ -7,8 +7,17 @@ public class toad : ModuleRules
 	public toad(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
-	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore" });
+
+		PublicDependencyModuleNames.AddRange(
+		new string[] {
+				"Core",
+				"CoreUObject",
+				"Engine",
+				"InputCore",
+				"AnimationCore",
+				"AnimGraphRuntime",
+			}
+		);
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });
 

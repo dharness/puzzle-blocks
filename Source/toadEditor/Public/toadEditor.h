@@ -8,10 +8,10 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(toadEditor, All, All)
 
-class FToadEditorModule : public IModuleInterface
+class TOADEDITOR_API FToadEditorModule : public IModuleInterface
 {
-//public:
-//    virtual void StartupModule() override;
-//    virtual void ShutdownModule() override;
+public:
+    virtual void StartupModule() override;
+    virtual void ShutdownModule() override;
 
 };
