@@ -18,8 +18,9 @@ public class toadEditor : ModuleRules
             "AnimGraph",
             "AnimGraphRuntime",
             "BlueprintGraph",
-            "Persona"
-        });
+            "Persona",
+			"SlateCore"
+		});
 
         PrivateDependencyModuleNames.AddRange(new string[] { "toad" });
 

@@ -5,6 +5,7 @@
 #include "BoneIndices.h"
 #include "BoneContainer.h"
 #include "BonePose.h"
+#include "TD_HandIKCore.h"
 #include "BoneControllers/AnimNode_SkeletalControlBase.h"
 #include "TD_AnimNodeHandIK.generated.h"
 
@@ -63,6 +64,9 @@ private:
 	// Convenience function to get current (pre-translation iteration) component space location of bone by bone index
 	FVector GetCurrentLocation(FCSPose<FCompactPose>& MeshBases, const FCompactPoseBoneIndex& BoneIndex);
 	static FTransform GetTargetTransform(const FTransform& InComponentTransform, FCSPose<FCompactPose>& MeshBases, FBoneSocketTarget& InTarget, EBoneControlSpace Space, const FTransform& InOffset);
+
+	FHandIKDebugData TD_DebugData;
+
 #if WITH_EDITORONLY_DATA
 	// Cached CS location when in editor for debug drawing
 	FTransform CachedEffectorCSTransform;
