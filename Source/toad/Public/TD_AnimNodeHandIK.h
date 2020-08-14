@@ -20,6 +20,9 @@ struct TOAD_API FTD_AnimNodeHandIK : public FAnimNode_SkeletalControlBase
 
 	UPROPERTY(EditAnywhere, Category = Effector, meta = (PinShownByDefault))
 	FVector EffectorLocation;
+	
+	UPROPERTY(EditAnywhere, Category = Poles, meta = (PinShownByDefault))
+	FTransform Bead;
 
 	UPROPERTY(EditAnywhere, Category = Effector)
 	FBoneSocketTarget EffectorTarget;
@@ -34,6 +37,10 @@ struct TOAD_API FTD_AnimNodeHandIK : public FAnimNode_SkeletalControlBase
 	/** Name of the root bone*/
 	UPROPERTY(EditAnywhere, Category = Solver)
     FBoneReference RootBone;
+
+
+	UPROPERTY(EditAnywhere, Category = Poles, meta = (ClampMin = "0", ClampMax = "360", UIMin = "0", UIMax = "360"))
+    float PoleAngle;
 
 #if WITH_EDITORONLY_DATA
 	/** Toggle drawing of axes to debug joint rotation*/
@@ -65,10 +72,11 @@ private:
 	FVector GetCurrentLocation(FCSPose<FCompactPose>& MeshBases, const FCompactPoseBoneIndex& BoneIndex);
 	static FTransform GetTargetTransform(const FTransform& InComponentTransform, FCSPose<FCompactPose>& MeshBases, FBoneSocketTarget& InTarget, EBoneControlSpace Space, const FTransform& InOffset);
 
-	FHandIKDebugData TD_DebugData;
 
-#if WITH_EDITORONLY_DATA
-	// Cached CS location when in editor for debug drawing
-	FTransform CachedEffectorCSTransform;
+public:
+#if WITH_EDITOR
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	TArray<FVector> DebugLines;
+#endif
 #endif
 };

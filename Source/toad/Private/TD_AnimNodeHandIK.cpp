@@ -14,7 +14,6 @@ FTD_AnimNodeHandIK::FTD_AnimNodeHandIK()
 #endif
 {
 	EffectorLocationSpace = EBoneControlSpace::BCS_WorldSpace;
-	TD_DebugData = FHandIKDebugData();
 }
 
 FVector FTD_AnimNodeHandIK::GetCurrentLocation(FCSPose<FCompactPose>& MeshBases, const FCompactPoseBoneIndex& BoneIndex)
@@ -109,18 +108,9 @@ void FTD_AnimNodeHandIK::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseCo
 	}
 
 	int32 const NumChainLinks = Chain.Num();
-	bool bBoneLocationUpdated = TD_AnimationCore::SolveHandIK(Chain, CSEffectorLocation, MaximumReach, TD_DebugData);
-	//DrawDebugLine
-	//(
-	//	UWorld::Get,
-	//	TD_DebugData.P0,
-	//	TD_DebugData.P1,
-	//	FColor::Cyan,
-	//	false,
-	//	0.01,
-	//	0,
-	//	2.0
-	//);
+	TArray<FVector> Points;
+	const bool bBoneLocationUpdated = TD_AnimationCore::SolveHandIK(Chain, CSEffectorLocation, MaximumReach, Points);
+
 	// If we moved some bones, update bone transforms.
 	if (bBoneLocationUpdated)
 	{
@@ -171,24 +161,18 @@ void FTD_AnimNodeHandIK::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseCo
 				ChildBoneTransform.NormalizeRotation();
 			}
 		}
+#if WITH_EDITOR
+		DebugLines.Reset(OutBoneTransforms.Num());
+		DebugLines.AddUninitialized(OutBoneTransforms.Num());
+		DebugLines = Points;
+		//for (int32 Index = 0; Index < OutBoneTransforms.Num(); ++Index)
+		//{
+		//	DebugLines[Index] = OutBoneTransforms[Index].Transform.GetLocation();
+		//}
+#endif // WITH_EDITOR
+
 	}
 
-	// Special handling for tip bone's rotation.
-	//int32 const TipBoneTransformIndex = OutBoneTransforms.Num() - 1;
-	//switch (EffectorRotationSource)
-	//{
-	//case BRS_KeepLocalSpaceRotation:
-	//	OutBoneTransforms[TipBoneTransformIndex].Transform = Output.Pose.GetLocalSpaceTransform(BoneIndices[TipBoneTransformIndex]) * OutBoneTransforms[TipBoneTransformIndex - 1].Transform;
-	//	break;
-	//case BRS_CopyFromTarget:
-	//	OutBoneTransforms[TipBoneTransformIndex].Transform.SetRotation(CSEffectorTransform.GetRotation());
-	//	break;
-	//case BRS_KeepComponentSpaceRotation:
-	//	// Don't change the orientation at all
-	//	break;
-	//default:
-	//	break;
-	//}
 }
 
 bool FTD_AnimNodeHandIK::IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones)
@@ -206,14 +190,14 @@ void FTD_AnimNodeHandIK::ConditionalDebugDraw(FPrimitiveDrawInterface* PDI, USke
 {
 #if WITH_EDITORONLY_DATA
 
-	if (bEnableDebugDraw && PreviewSkelMeshComp && PreviewSkelMeshComp->GetWorld())
-	{
-		FVector const CSEffectorLocation = CachedEffectorCSTransform.GetLocation();
+	//if (bEnableDebugDraw && PreviewSkelMeshComp && PreviewSkelMeshComp->GetWorld())
+	//{
+	//	FVector const CSEffectorLocation = CachedEffectorCSTransform.GetLocation();
 
-		// Show end effector position.
-		//DrawDebugBox(PreviewSkelMeshComp->GetWorld(), CSEffectorLocation, FVector(Precision), FColor::Green, true, 0.1f);
-		DrawDebugCoordinateSystem(PreviewSkelMeshComp->GetWorld(), CSEffectorLocation, CachedEffectorCSTransform.GetRotation().Rotator(), 5.f, true, 0.1f);
-	}
+	//	// Show end effector position.
+	//	//DrawDebugBox(PreviewSkelMeshComp->GetWorld(), CSEffectorLocation, FVector(Precision), FColor::Green, true, 0.1f);
+	//	DrawDebugCoordinateSystem(PreviewSkelMeshComp->GetWorld(), CSEffectorLocation, CachedEffectorCSTransform.GetRotation().Rotator(), 5.f, true, 0.1f);
+	//}
 #endif
 }
 

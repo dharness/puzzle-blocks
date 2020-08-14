@@ -67,19 +67,52 @@ void FTD_HandIKEditMode::Render(const FSceneView* View, FViewport* Viewport, FPr
 	UE_LOG(LogTemp, Warning, TEXT("Render"));
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	// draw line from root bone to tip bone if available
-	//if (RuntimeNode && RuntimeNode->DebugLines.Num() > 0)
-	//{
-	//	USkeletalMeshComponent* SkelComp = GetAnimPreviewScene().GetPreviewMeshComponent();
-	//	FTransform CompToWorld = SkelComp->GetComponentToWorld();
+	if (RuntimeNode && RuntimeNode->bEnableDebugDraw && RuntimeNode->DebugLines.Num() > 0)
+	{
+		USkeletalMeshComponent* SkelComp = GetAnimPreviewScene().GetPreviewMeshComponent();
+		FTransform CompToWorld = SkelComp->GetComponentToWorld();
 
-	//	// no component space
-	//	for (int32 Index = 1; Index < RuntimeNode->DebugLines.Num(); ++Index)
-	//	{
-	//		FVector Start = CompToWorld.TransformPosition(RuntimeNode->DebugLines[Index - 1]);
-	//		FVector End = CompToWorld.TransformPosition(RuntimeNode->DebugLines[Index]);
+		// no component space
+		UE_LOG(LogTemp, Warning, TEXT("DebugLines.Num(): %d"), RuntimeNode->DebugLines.Num());
+		for (int32 Index = 0; Index < RuntimeNode->DebugLines.Num(); ++Index)
+		{
+			FVector Point = CompToWorld.TransformPosition(RuntimeNode->DebugLines[Index]);
+			if(Index % 2 != 0)
+			{
+				const FVector DirToNextPoint = (RuntimeNode->DebugLines[Index + 1] - Point).GetSafeNormal();
+				FVector End = DirToNextPoint;
+				FVector RightVector = FVector::RightVector;
+				RightVector.Z = -100;
+				
+				FVector OtherRight = DirToNextPoint.ToOrientationQuat().GetUpVector();
 
-	//		PDI->DrawLine(Start, End, FLinearColor::Red, SDPG_Foreground);
-	//	}
-	//}
+				//End = End.RotateAngleAxis(90.0, DirToNextPoint);
+				//End = End.RotateAngleAxis(RuntimeNode->PoleAngle, DirToNextPoint);
+				//End = FVector::UpVector;
+				//End += Point;
+				//End *= 2.0;
+				//auto EndPoint = (Point + FVector::RightVector * 20.0).RotateAngleAxis(RuntimeNode->PoleAngle, FVector::UpVector);
+				//PDI->DrawLine(Point, EndPoint, FLinearColor::FromSRGBColor(FColor::Cyan), SDPG_Foreground);
+
+				FVector Projection = DirToNextPoint*FVector::DotProduct(RightVector, DirToNextPoint)/FMath::Square(DirToNextPoint.Size());
+				//FVector P2 = DirToNextPoint.GetClampedToMaxSize(Magnitude);
+				//FVector PoleVector = DirToNextPoint.GetClampedToMaxSize(Magnitude) - (Magnitude >= 0 ? FVector::RightVector : FVector::LeftVector);
+				FVector PoleVector = Projection - RightVector;
+				//PoleVector.Normalize();
+				//FVector PoleVector = RuntimeNode->ControlPointLocation.GetSafeNormal();
+				RuntimeNode->Bead.SetLocation(Point);
+				RuntimeNode->Bead.SetRotation(DirToNextPoint.Rotation().Quaternion());
+				PDI->DrawLine(Point, Point + PoleVector.GetSafeNormal() * 30.0, FLinearColor::FromSRGBColor(FColor::Yellow), SDPG_Foreground);
+			}
+
+			PDI->DrawPoint(Point, FLinearColor::Blue, 15, SDPG_Foreground);
+		}
+	}
 #endif // #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
+
+//void FTD_HandIKEditMode::DrawCircle(FVector Center, float Radius, FPrimitiveDrawInterface* PDI)
+//{
+//	const int NumSubdivisions = 100;
+//	
+//}

@@ -19,7 +19,7 @@ namespace TD_AnimationCore
 		return PFinal;
 	}
 
-	bool SolveHandIK(TArray<FHandIKChainLink>& InOutChain, const FVector& TargetPosition, float MaximumReach, FHandIKDebugData& OutDebugData)
+	bool SolveHandIK(TArray<FHandIKChainLink>& InOutChain, const FVector& TargetPosition, float MaximumReach, TArray<FVector>& Points)
 	{
 		bool bBoneLocationUpdated = false;
 		float const RootToTargetDistSq = FVector::DistSquared(InOutChain[0].Position, TargetPosition);
@@ -39,11 +39,11 @@ namespace TD_AnimationCore
 		else // Effector is within reach, calculate bone translations to position tip at effector location
 		{
 			const FVector P0 = InOutChain[0].Position;
-			const FVector P1 = FVector::ZeroVector;
 			const FVector P2 = TargetPosition;
-			OutDebugData.P0 = P0;
-			OutDebugData.P1 = P1;
-			OutDebugData.P2 = P2;
+			const FVector P1 = P0 + (P2/2.0);
+			Points.Add(P0);
+			Points.Add(P1);
+			Points.Add(P2);
 
 			//const FVector PFinal = QuadraticBezier
 
