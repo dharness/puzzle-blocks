@@ -80,29 +80,28 @@ void FTD_HandIKEditMode::Render(const FSceneView* View, FViewport* Viewport, FPr
 			if(Index % 2 != 0)
 			{
 				const FVector DirToNextPoint = (RuntimeNode->DebugLines[Index + 1] - Point).GetSafeNormal();
-				FVector End = DirToNextPoint;
 				FVector RightVector = FVector::RightVector;
-				RightVector.Z = -100;
-				
-				FVector OtherRight = DirToNextPoint.ToOrientationQuat().GetUpVector();
-
-				//End = End.RotateAngleAxis(90.0, DirToNextPoint);
-				//End = End.RotateAngleAxis(RuntimeNode->PoleAngle, DirToNextPoint);
-				//End = FVector::UpVector;
-				//End += Point;
-				//End *= 2.0;
-				//auto EndPoint = (Point + FVector::RightVector * 20.0).RotateAngleAxis(RuntimeNode->PoleAngle, FVector::UpVector);
-				//PDI->DrawLine(Point, EndPoint, FLinearColor::FromSRGBColor(FColor::Cyan), SDPG_Foreground);
-
 				FVector Projection = DirToNextPoint*FVector::DotProduct(RightVector, DirToNextPoint)/FMath::Square(DirToNextPoint.Size());
-				//FVector P2 = DirToNextPoint.GetClampedToMaxSize(Magnitude);
-				//FVector PoleVector = DirToNextPoint.GetClampedToMaxSize(Magnitude) - (Magnitude >= 0 ? FVector::RightVector : FVector::LeftVector);
 				FVector PoleVector = Projection - RightVector;
-				//PoleVector.Normalize();
-				//FVector PoleVector = RuntimeNode->ControlPointLocation.GetSafeNormal();
+
+				if (DirToNextPoint.Z < 0)
+				{
+					PoleVector *= -1;
+				}
+
 				RuntimeNode->Bead.SetLocation(Point);
 				RuntimeNode->Bead.SetRotation(DirToNextPoint.Rotation().Quaternion());
-				PDI->DrawLine(Point, Point + PoleVector.GetSafeNormal() * 30.0, FLinearColor::FromSRGBColor(FColor::Yellow), SDPG_Foreground);
+				auto R = RightVector * 30;
+				auto P2 = Projection * 30;
+				auto V = PoleVector * 30;
+
+				// R
+				PDI->DrawLine(FVector::ZeroVector,  R, FLinearColor::FromSRGBColor(FColor::Cyan), SDPG_Foreground);
+				// P2
+				PDI->DrawLine(FVector::ZeroVector, P2, FLinearColor::FromSRGBColor(FColor::Red), SDPG_Foreground);
+				// V
+				PDI->DrawLine(R, R + V, FLinearColor::FromSRGBColor(FColor::Yellow), SDPG_Foreground);
+				PDI->DrawLine(Point, Point + V, FLinearColor::FromSRGBColor(FColor::Yellow), SDPG_Foreground);
 			}
 
 			PDI->DrawPoint(Point, FLinearColor::Blue, 15, SDPG_Foreground);
