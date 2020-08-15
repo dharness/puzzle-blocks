@@ -19,32 +19,18 @@ namespace TD_AnimationCore
 		return PFinal;
 	}
 
-	FVector GetDefaultControlDirection(const FVector P1, const FVector P2, const FVector ComponentRightVector, FHandIKDebugData& HandIKDebugData)
+	FVector GetDefaultControlDirection(const FVector P1, const FVector P2, const FVector ComponentUpVector, FVector ComponentRightVector, FHandIKDebugData& HandIKDebugData)
 	{
 		const FVector P = (P2 - P1);
 		const FVector DirToNextPoint = P.GetSafeNormal();
-		const FVector RightVector = ComponentRightVector;
-		const FVector Projection = DirToNextPoint * FVector::DotProduct(RightVector, DirToNextPoint) / FMath::Square(DirToNextPoint.Size());
-		const FVector ProjPR = (FVector::DotProduct(P, RightVector) * RightVector) / FMath::Square(RightVector.Size());
-		FVector UnrealControl = FVector::VectorPlaneProject(RightVector, DirToNextPoint);
+		const FQuat Transformation= FQuat::FindBetweenVectors(ComponentUpVector, P);
+		const FVector ControlVector = Transformation.RotateVector(ComponentRightVector);
 
-		FVector ControlVector = Projection - RightVector;
-		//if (DirToNextPoint.Z < 0)
-		//{
-		//	ControlVector = ControlVector * FVector(1,1,-1);
-		//	UnrealControl = UnrealControl * -1;
-		//}
-		//ControlVector.Normalize();
-		HandIKDebugData.POriginal = FVector::UpVector;
-		HandIKDebugData.ControlOriginal = FVector::LeftVector;
 		HandIKDebugData.P1 = P1;
 		HandIKDebugData.P2 = P2;
-		HandIKDebugData.Projection = Projection;
 		HandIKDebugData.ControlVector = ControlVector;
-		HandIKDebugData.ProjPR = ProjPR;
-		HandIKDebugData.UnrealControl = UnrealControl;
 		
-		return ControlVector;
+		return ControlVector.GetSafeNormal();
 	}
 
 	bool SolveHandIK(TArray<FHandIKChainLink>& InOutChain, const FVector& TargetPosition, float MaximumReach, FHandIKDebugData& HandIKDebugData)
@@ -53,6 +39,7 @@ namespace TD_AnimationCore
 		float const RootToTargetDistSq = FVector::DistSquared(InOutChain[0].Position, TargetPosition);
 		int32 const NumChainLinks = InOutChain.Num();
 		FVector RightVector = FVector::RightVector;
+		FVector UpVector = FVector::UpVector;
 
 		// If the effector is further away than the distance from root to tip, simply move all bones in a line from root to effector location
 		if (RootToTargetDistSq > FMath::Square(MaximumReach))
@@ -71,10 +58,11 @@ namespace TD_AnimationCore
 			P1.X = 0;
 			const FVector P2 = TargetPosition;
 			const FVector MidPoint = P1 + (P2/2.0);
-			FVector ControlVector = GetDefaultControlDirection(P1, P2, RightVector, HandIKDebugData);
+			FVector ControlVector = GetDefaultControlDirection(P1, P2, RightVector, UpVector, HandIKDebugData);
 			const FVector ControlPoint = MidPoint + (ControlVector * 15);
 			HandIKDebugData.ControlPoint = ControlPoint;
 			HandIKDebugData.RightVector = RightVector;
+			HandIKDebugData.UpVector = UpVector;
 
 			//const FVector PFinal = QuadraticBezier
 

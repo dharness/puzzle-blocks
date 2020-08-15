@@ -73,16 +73,14 @@ void FTD_HandIKEditMode::Render(const FSceneView* View, FViewport* Viewport, FPr
 		FTransform CompToWorld = SkelComp->GetComponentToWorld();
 		FHandIKDebugData HandIKDebugData = RuntimeNode->HandIKDebugData;
 		const FVector MidPoint = HandIKDebugData.P1 + (HandIKDebugData.P2 / 2.0);
-		FVector P1 = HandIKDebugData.P1;
-		FVector P2 = HandIKDebugData.P2;
-		FVector P = HandIKDebugData.P2 - HandIKDebugData.P1;
+		const FVector P1 = HandIKDebugData.P1;
+		const FVector P2 = HandIKDebugData.P2;
+		const FVector ControlPoint = HandIKDebugData.ControlPoint;
 
-		float LineScale = 30;
+		const float LineScale = 30;
 		PDI->DrawPoint(P1, FLinearColor::Blue, 15, SDPG_Foreground);
 		PDI->DrawPoint(P2, FLinearColor::Blue, 15, SDPG_Foreground);
-
-		auto T = FQuat::FindBetweenVectors(HandIKDebugData.POriginal, P);
-		FVector CurrentControl = T.RotateVector(HandIKDebugData.ControlOriginal);
+		PDI->DrawPoint(ControlPoint, FLinearColor::Red, 15, SDPG_Foreground);
 		
 
 		// P Vector
@@ -95,22 +93,22 @@ void FTD_HandIKEditMode::Render(const FSceneView* View, FViewport* Viewport, FPr
 		
 		PDI->DrawLine(
 			MidPoint,
-			MidPoint + (CurrentControl * LineScale),
+			MidPoint + (HandIKDebugData.ControlVector * LineScale),
 			FLinearColor::FromSRGBColor(FColor::Red),
 			SDPG_Foreground
 		);
 
-		auto MidPointOriginal= (P1 + (HandIKDebugData.POriginal * LineScale)) / 2;
+		const auto MidPointOriginal= (P1 + (HandIKDebugData.UpVector * LineScale)) / 2;
 		PDI->DrawLine(
 			MidPointOriginal,
-			MidPointOriginal+ (HandIKDebugData.ControlOriginal.GetSafeNormal() * LineScale),
+			MidPointOriginal+ (HandIKDebugData.RightVector.GetSafeNormal() * LineScale),
 			FLinearColor::FromSRGBColor(FColor::Orange),
 			SDPG_Foreground
 		);
 	
 		PDI->DrawLine(
 			P1,
-			P1 + (HandIKDebugData.POriginal * LineScale),
+			P1 + (HandIKDebugData.UpVector * LineScale),
 			FLinearColor::FromSRGBColor(FColor::Orange),
 			SDPG_Foreground
 		);

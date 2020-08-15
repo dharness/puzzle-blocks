@@ -75,15 +75,11 @@ struct FHandIKDebugData
 
 public:
 	FVector ControlPoint;
-	FVector POriginal;
-	FVector ControlOriginal;
+	FVector ControlVector;
 	FVector P1;
 	FVector P2;
 	FVector RightVector;
-	FVector Projection;
-	FVector ControlVector;
-	FVector ProjPR;
-	FVector UnrealControl;
+	FVector UpVector;
 
 };
 
