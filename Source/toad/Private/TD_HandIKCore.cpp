@@ -21,23 +21,30 @@ namespace TD_AnimationCore
 
 	FVector GetDefaultControlDirection(const FVector P1, const FVector P2, const FVector ComponentRightVector, FHandIKDebugData& HandIKDebugData)
 	{
-		const FVector DirToNextPoint = (P2 - P1).GetSafeNormal();
+		const FVector P = (P2 - P1);
+		const FVector DirToNextPoint = P.GetSafeNormal();
 		const FVector RightVector = ComponentRightVector;
 		const FVector Projection = DirToNextPoint * FVector::DotProduct(RightVector, DirToNextPoint) / FMath::Square(DirToNextPoint.Size());
+		const FVector ProjPR = (FVector::DotProduct(P, RightVector) * RightVector) / FMath::Square(RightVector.Size());
+		FVector UnrealControl = FVector::VectorPlaneProject(RightVector, DirToNextPoint);
+
 		FVector ControlVector = Projection - RightVector;
-		if (DirToNextPoint.Z < 0)
-		{
-			ControlVector = ControlVector *-1;
-		}
-		ControlVector.Normalize();
+		//if (DirToNextPoint.Z < 0)
+		//{
+		//	ControlVector = ControlVector * FVector(1,1,-1);
+		//	UnrealControl = UnrealControl * -1;
+		//}
+		//ControlVector.Normalize();
+		HandIKDebugData.POriginal = FVector::UpVector;
+		HandIKDebugData.ControlOriginal = FVector::LeftVector;
 		HandIKDebugData.P1 = P1;
 		HandIKDebugData.P2 = P2;
-		HandIKDebugData.Projection = (P2 - P1).GetUnsafeNormal();
+		HandIKDebugData.Projection = Projection;
 		HandIKDebugData.ControlVector = ControlVector;
+		HandIKDebugData.ProjPR = ProjPR;
+		HandIKDebugData.UnrealControl = UnrealControl;
 		
 		return ControlVector;
-		
-		
 	}
 
 	bool SolveHandIK(TArray<FHandIKChainLink>& InOutChain, const FVector& TargetPosition, float MaximumReach, FHandIKDebugData& HandIKDebugData)
@@ -60,10 +67,12 @@ namespace TD_AnimationCore
 		}
 		else // Effector is within reach, calculate bone translations to position tip at effector location
 		{
-			const FVector P1 = InOutChain[0].Position;
+			FVector P1 = InOutChain[0].Position;
+			P1.X = 0;
 			const FVector P2 = TargetPosition;
 			const FVector MidPoint = P1 + (P2/2.0);
-			const FVector ControlPoint = MidPoint + GetDefaultControlDirection(P1, P2, RightVector, HandIKDebugData);
+			FVector ControlVector = GetDefaultControlDirection(P1, P2, RightVector, HandIKDebugData);
+			const FVector ControlPoint = MidPoint + (ControlVector * 15);
 			HandIKDebugData.ControlPoint = ControlPoint;
 			HandIKDebugData.RightVector = RightVector;
 

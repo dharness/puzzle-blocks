@@ -73,74 +73,47 @@ void FTD_HandIKEditMode::Render(const FSceneView* View, FViewport* Viewport, FPr
 		FTransform CompToWorld = SkelComp->GetComponentToWorld();
 		FHandIKDebugData HandIKDebugData = RuntimeNode->HandIKDebugData;
 		const FVector MidPoint = HandIKDebugData.P1 + (HandIKDebugData.P2 / 2.0);
+		FVector P1 = HandIKDebugData.P1;
+		FVector P2 = HandIKDebugData.P2;
+		FVector P = HandIKDebugData.P2 - HandIKDebugData.P1;
 
 		float LineScale = 30;
-		//PDI->DrawLine(FVector::ZeroVector, RuntimeNode->HandIKDebugData.P1 * LineScale, FLinearColor::FromSRGBColor(FColor::Cyan), SDPG_Foreground);
-		PDI->DrawPoint(HandIKDebugData.P1, FLinearColor::Blue, 15, SDPG_Foreground);
-		PDI->DrawPoint(HandIKDebugData.P2, FLinearColor::Blue, 15, SDPG_Foreground);
-		PDI->DrawPoint(HandIKDebugData.ControlPoint, FLinearColor::Red, 15, SDPG_Foreground);
+		PDI->DrawPoint(P1, FLinearColor::Blue, 15, SDPG_Foreground);
+		PDI->DrawPoint(P2, FLinearColor::Blue, 15, SDPG_Foreground);
+
+		auto T = FQuat::FindBetweenVectors(HandIKDebugData.POriginal, P);
+		FVector CurrentControl = T.RotateVector(HandIKDebugData.ControlOriginal);
 		
+
+		// P Vector
 		PDI->DrawLine(
-			HandIKDebugData.P1,
-			HandIKDebugData.P1 + HandIKDebugData.P2,
+			P1,
+			P2,
 			FLinearColor::FromSRGBColor(FColor::Cyan),
 			SDPG_Foreground
 		);
-	
+		
 		PDI->DrawLine(
-			HandIKDebugData.P1,
-			(HandIKDebugData.P1 + HandIKDebugData.Projection) * LineScale,
+			MidPoint,
+			MidPoint + (CurrentControl * LineScale),
 			FLinearColor::FromSRGBColor(FColor::Red),
 			SDPG_Foreground
 		);
 
+		auto MidPointOriginal= (P1 + (HandIKDebugData.POriginal * LineScale)) / 2;
 		PDI->DrawLine(
-			MidPoint,
-			MidPoint + HandIKDebugData.ControlVector,
-			FLinearColor::FromSRGBColor(FColor::Yellow),
+			MidPointOriginal,
+			MidPointOriginal+ (HandIKDebugData.ControlOriginal.GetSafeNormal() * LineScale),
+			FLinearColor::FromSRGBColor(FColor::Orange),
 			SDPG_Foreground
 		);
-
+	
 		PDI->DrawLine(
-			FVector::ZeroVector,
-			(HandIKDebugData.RightVector) * LineScale,
-			FLinearColor::FromSRGBColor(FColor::Green),
+			P1,
+			P1 + (HandIKDebugData.POriginal * LineScale),
+			FLinearColor::FromSRGBColor(FColor::Orange),
 			SDPG_Foreground
 		);
-
-		//for (int32 Index = 0; Index < RuntimeNode->DebugLines.Num(); ++Index)
-		//{
-		//	FVector Point = CompToWorld.TransformPosition(RuntimeNode->DebugLines[Index]);
-		//	if(Index % 2 != 0)
-		//	{
-		//		const FVector DirToNextPoint = (RuntimeNode->DebugLines[Index + 1] - Point).GetSafeNormal();
-		//		FVector RightVector = FVector::RightVector;
-		//		FVector Projection = DirToNextPoint*FVector::DotProduct(RightVector, DirToNextPoint)/FMath::Square(DirToNextPoint.Size());
-		//		FVector PoleVector = Projection - RightVector;
-
-		//		if (DirToNextPoint.Z < 0)
-		//		{
-		//			PoleVector *= -1;
-		//		}
-
-		//		RuntimeNode->Bead.SetLocation(Point);
-		//		RuntimeNode->Bead.SetRotation(DirToNextPoint.Rotation().Quaternion());
-		//		auto R = RightVector * 30;
-		//		auto P2 = Projection * 30;
-		//		auto V = PoleVector * 30;
-
-		//		// R
-		//		PDI->DrawLine(FVector::ZeroVector,  R, FLinearColor::FromSRGBColor(FColor::Cyan), SDPG_Foreground);
-		//		// P2
-		//		PDI->DrawLine(FVector::ZeroVector, P2, FLinearColor::FromSRGBColor(FColor::Red), SDPG_Foreground);
-		//		// V
-		//		PDI->DrawLine(R, R + V, FLinearColor::FromSRGBColor(FColor::Yellow), SDPG_Foreground);
-		//		PDI->DrawLine(Point, Point + V, FLinearColor::FromSRGBColor(FColor::Yellow), SDPG_Foreground);
-		//		//TD_AnimationCore::GetDefaultControlDirection()
-		//	}
-
-		//	PDI->DrawPoint(Point, FLinearColor::Blue, 15, SDPG_Foreground);
-		//}
 	}
 #endif // #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
