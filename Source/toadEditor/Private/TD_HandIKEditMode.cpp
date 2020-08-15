@@ -67,51 +67,91 @@ void FTD_HandIKEditMode::Render(const FSceneView* View, FViewport* Viewport, FPr
 	UE_LOG(LogTemp, Warning, TEXT("Render"));
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	// draw line from root bone to tip bone if available
-	if (RuntimeNode && RuntimeNode->bEnableDebugDraw && RuntimeNode->DebugLines.Num() > 0)
+	if (RuntimeNode && RuntimeNode->bEnableDebugDraw)
 	{
 		USkeletalMeshComponent* SkelComp = GetAnimPreviewScene().GetPreviewMeshComponent();
 		FTransform CompToWorld = SkelComp->GetComponentToWorld();
+		FHandIKDebugData HandIKDebugData = RuntimeNode->HandIKDebugData;
+		const FVector MidPoint = HandIKDebugData.P1 + (HandIKDebugData.P2 / 2.0);
 
-		// no component space
-		UE_LOG(LogTemp, Warning, TEXT("DebugLines.Num(): %d"), RuntimeNode->DebugLines.Num());
-		for (int32 Index = 0; Index < RuntimeNode->DebugLines.Num(); ++Index)
-		{
-			FVector Point = CompToWorld.TransformPosition(RuntimeNode->DebugLines[Index]);
-			if(Index % 2 != 0)
-			{
-				const FVector DirToNextPoint = (RuntimeNode->DebugLines[Index + 1] - Point).GetSafeNormal();
-				FVector RightVector = FVector::RightVector;
-				FVector Projection = DirToNextPoint*FVector::DotProduct(RightVector, DirToNextPoint)/FMath::Square(DirToNextPoint.Size());
-				FVector PoleVector = Projection - RightVector;
+		float LineScale = 30;
+		//PDI->DrawLine(FVector::ZeroVector, RuntimeNode->HandIKDebugData.P1 * LineScale, FLinearColor::FromSRGBColor(FColor::Cyan), SDPG_Foreground);
+		PDI->DrawPoint(HandIKDebugData.P1, FLinearColor::Blue, 15, SDPG_Foreground);
+		PDI->DrawPoint(HandIKDebugData.P2, FLinearColor::Blue, 15, SDPG_Foreground);
+		PDI->DrawPoint(HandIKDebugData.ControlPoint, FLinearColor::Red, 15, SDPG_Foreground);
+		
+		PDI->DrawLine(
+			HandIKDebugData.P1,
+			HandIKDebugData.P1 + HandIKDebugData.P2,
+			FLinearColor::FromSRGBColor(FColor::Cyan),
+			SDPG_Foreground
+		);
+	
+		PDI->DrawLine(
+			HandIKDebugData.P1,
+			(HandIKDebugData.P1 + HandIKDebugData.Projection) * LineScale,
+			FLinearColor::FromSRGBColor(FColor::Red),
+			SDPG_Foreground
+		);
 
-				if (DirToNextPoint.Z < 0)
-				{
-					PoleVector *= -1;
-				}
+		PDI->DrawLine(
+			MidPoint,
+			MidPoint + HandIKDebugData.ControlVector,
+			FLinearColor::FromSRGBColor(FColor::Yellow),
+			SDPG_Foreground
+		);
 
-				RuntimeNode->Bead.SetLocation(Point);
-				RuntimeNode->Bead.SetRotation(DirToNextPoint.Rotation().Quaternion());
-				auto R = RightVector * 30;
-				auto P2 = Projection * 30;
-				auto V = PoleVector * 30;
+		PDI->DrawLine(
+			FVector::ZeroVector,
+			(HandIKDebugData.RightVector) * LineScale,
+			FLinearColor::FromSRGBColor(FColor::Green),
+			SDPG_Foreground
+		);
 
-				// R
-				PDI->DrawLine(FVector::ZeroVector,  R, FLinearColor::FromSRGBColor(FColor::Cyan), SDPG_Foreground);
-				// P2
-				PDI->DrawLine(FVector::ZeroVector, P2, FLinearColor::FromSRGBColor(FColor::Red), SDPG_Foreground);
-				// V
-				PDI->DrawLine(R, R + V, FLinearColor::FromSRGBColor(FColor::Yellow), SDPG_Foreground);
-				PDI->DrawLine(Point, Point + V, FLinearColor::FromSRGBColor(FColor::Yellow), SDPG_Foreground);
-			}
+		//for (int32 Index = 0; Index < RuntimeNode->DebugLines.Num(); ++Index)
+		//{
+		//	FVector Point = CompToWorld.TransformPosition(RuntimeNode->DebugLines[Index]);
+		//	if(Index % 2 != 0)
+		//	{
+		//		const FVector DirToNextPoint = (RuntimeNode->DebugLines[Index + 1] - Point).GetSafeNormal();
+		//		FVector RightVector = FVector::RightVector;
+		//		FVector Projection = DirToNextPoint*FVector::DotProduct(RightVector, DirToNextPoint)/FMath::Square(DirToNextPoint.Size());
+		//		FVector PoleVector = Projection - RightVector;
 
-			PDI->DrawPoint(Point, FLinearColor::Blue, 15, SDPG_Foreground);
-		}
+		//		if (DirToNextPoint.Z < 0)
+		//		{
+		//			PoleVector *= -1;
+		//		}
+
+		//		RuntimeNode->Bead.SetLocation(Point);
+		//		RuntimeNode->Bead.SetRotation(DirToNextPoint.Rotation().Quaternion());
+		//		auto R = RightVector * 30;
+		//		auto P2 = Projection * 30;
+		//		auto V = PoleVector * 30;
+
+		//		// R
+		//		PDI->DrawLine(FVector::ZeroVector,  R, FLinearColor::FromSRGBColor(FColor::Cyan), SDPG_Foreground);
+		//		// P2
+		//		PDI->DrawLine(FVector::ZeroVector, P2, FLinearColor::FromSRGBColor(FColor::Red), SDPG_Foreground);
+		//		// V
+		//		PDI->DrawLine(R, R + V, FLinearColor::FromSRGBColor(FColor::Yellow), SDPG_Foreground);
+		//		PDI->DrawLine(Point, Point + V, FLinearColor::FromSRGBColor(FColor::Yellow), SDPG_Foreground);
+		//		//TD_AnimationCore::GetDefaultControlDirection()
+		//	}
+
+		//	PDI->DrawPoint(Point, FLinearColor::Blue, 15, SDPG_Foreground);
+		//}
 	}
 #endif // #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
-//void FTD_HandIKEditMode::DrawCircle(FVector Center, float Radius, FPrimitiveDrawInterface* PDI)
+//void FTD_HandIKEditMode::DrawCircle(FVector Center, float Radius, FVector ZeroVector, FPrimitiveDrawInterface* PDI)
 //{
 //	const int NumSubdivisions = 100;
+//	float Deg = 0;
+//	while(Deg < 360)
+//	{
+//		
+//	}
 //	
 //}

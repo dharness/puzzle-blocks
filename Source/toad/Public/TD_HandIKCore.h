@@ -74,27 +74,16 @@ struct FHandIKDebugData
 	GENERATED_BODY()
 
 public:
-	FVector P0;
+	FVector ControlPoint;
 	FVector P1;
 	FVector P2;
+	FVector RightVector;
+	FVector Projection;
+	FVector ControlVector;
 
-	FHandIKDebugData()
-		: P0(FVector::ZeroVector)
-		, P1(FVector::ZeroVector)
-		, P2(FVector::ZeroVector)
-	{
-	}
-
-	FHandIKDebugData(const FVector P0, const FVector P1, const FVector P2)
-		: P0(P0)
-		, P1(P1)
-		, P2(P2)
-	{
-	}
 };
-
 
 namespace TD_AnimationCore
 {
-	TOAD_API bool SolveHandIK(TArray<FHandIKChainLink>& InOutChain, const FVector& TargetLocation, float MaximumReach, TArray<FVector>& Points);
+	TOAD_API bool SolveHandIK(TArray<FHandIKChainLink>& InOutChain, const FVector& TargetLocation, float MaximumReach, FHandIKDebugData& HandIKDebugData);
 };

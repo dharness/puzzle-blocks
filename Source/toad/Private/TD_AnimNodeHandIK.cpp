@@ -108,8 +108,8 @@ void FTD_AnimNodeHandIK::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseCo
 	}
 
 	int32 const NumChainLinks = Chain.Num();
-	TArray<FVector> Points;
-	const bool bBoneLocationUpdated = TD_AnimationCore::SolveHandIK(Chain, CSEffectorLocation, MaximumReach, Points);
+	
+	const bool bBoneLocationUpdated = TD_AnimationCore::SolveHandIK(Chain, CSEffectorLocation, MaximumReach, HandIKDebugData);
 
 	// If we moved some bones, update bone transforms.
 	if (bBoneLocationUpdated)
@@ -161,15 +161,11 @@ void FTD_AnimNodeHandIK::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseCo
 				ChildBoneTransform.NormalizeRotation();
 			}
 		}
-#if WITH_EDITOR
-		DebugLines.Reset(OutBoneTransforms.Num());
-		DebugLines.AddUninitialized(OutBoneTransforms.Num());
-		DebugLines = Points;
-		//for (int32 Index = 0; Index < OutBoneTransforms.Num(); ++Index)
-		//{
-		//	DebugLines[Index] = OutBoneTransforms[Index].Transform.GetLocation();
-		//}
-#endif // WITH_EDITOR
+//#if WITH_EDITOR
+//		DebugLines.Reset(OutBoneTransforms.Num());
+//		DebugLines.AddUninitialized(OutBoneTransforms.Num());
+//		DebugLines = Points;
+//#endif // WITH_EDITOR
 
 	}
 

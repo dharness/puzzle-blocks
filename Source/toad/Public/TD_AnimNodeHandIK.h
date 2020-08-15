@@ -77,6 +77,7 @@ public:
 #if WITH_EDITOR
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	TArray<FVector> DebugLines;
+	FHandIKDebugData HandIKDebugData;
 #endif
 #endif
 };
