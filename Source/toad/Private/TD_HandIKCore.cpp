@@ -66,6 +66,8 @@ namespace TD_AnimationCore
 		float T = MinT;
 		float ArcLength = 0;
 
+		CurveCache.Empty();
+
 		FVector PrevPoint = QuadraticBezier(A, B, D, T);
 		CurveCache.Add(ArcLength, PrevPoint);
 
@@ -84,27 +86,52 @@ namespace TD_AnimationCore
 
 	FTD_BezierCurveCache FindCurve(FVector P1, FVector P2, FVector HandleDir, float HandleWeight, float TargetArcLength, FHandIKDebugData& HandIKDebugData)
 	{
+		const float Tolerance = 0.01;
+		const int32 Iterations = 10;
 		FTD_BezierCurveCache CurveCache = FTD_BezierCurveCache();
 		const FVector P = (P2 - P1);
 		const FVector HandleStart = P1 + (P * HandleWeight);
-		const float HandleHeight = GetHandleHeight(P1, P2, HandleWeight, TargetArcLength);
+		float HandleHeight = GetHandleHeight(P1, P2, HandleWeight, TargetArcLength);
+		float MinHandleHeight = 0;
+		float MaxHandleHeight = P.SizeSquared();
 
 		FVector ControlPoints[4];
 		ControlPoints[0] = P1;
 		ControlPoints[3] = P2;
 
-		const FVector Handle = GetHandleLocation(HandleStart, HandleDir, HandleHeight);
-		ControlPoints[1] = Handle;
-		ControlPoints[2] = Handle;
-		HandIKDebugData.ControlPoint = Handle;
-
-		float ArcLength = EvaluateBezierCurve(ControlPoints, 100, CurveCache);
-		float Delta = TargetArcLength - ArcLength;
-
 		UE_LOG(LogTemp, Warning, TEXT("----------------------"));
-		UE_LOG(LogTemp, Warning, TEXT("Esitmated ArcLength: %f"), ArcLength);
-		UE_LOG(LogTemp, Warning, TEXT("Target ArcLength: %f"), TargetArcLength);
-		UE_LOG(LogTemp, Warning, TEXT("Delta: %f"), Delta);
+		for(int i = 0; i < Iterations; i++)
+		{
+			const FVector Handle = GetHandleLocation(HandleStart, HandleDir, HandleHeight);
+			ControlPoints[1] = Handle;
+			ControlPoints[2] = Handle;
+			HandIKDebugData.ControlPoint = Handle;
+
+			const float ArcLength = EvaluateBezierCurve(ControlPoints, 100, CurveCache);
+			const float Delta = ArcLength - TargetArcLength;
+
+			if (FMath::Abs(Delta) < Tolerance)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Delta: %f"), Delta);
+				break;
+			}
+			else
+			{
+				// Height too High
+				if(Delta > 0)
+				{
+					MaxHandleHeight = HandleHeight;
+				}
+				// Height too Low
+				else
+				{
+					MinHandleHeight = HandleHeight;
+				}
+				const float Range = MaxHandleHeight - MinHandleHeight;
+				HandleHeight = MinHandleHeight + (Range/2.f);
+			}
+		}
+
 		return CurveCache;
 	}
 
@@ -112,7 +139,6 @@ namespace TD_AnimationCore
 	bool SolveHandIK(TArray<FHandIKChainLink>& InOutChain, const FVector& TargetPosition, float ControlPointWeight,
 		float MaximumReach, FHandIKDebugData& HandIKDebugData)
 	{
-
 		bool bBoneLocationUpdated = false;
 		float const RootToTargetDistSq = FVector::DistSquared(InOutChain[0].Position, TargetPosition);
 		int32 const NumChainLinks = InOutChain.Num();
