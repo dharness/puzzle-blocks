@@ -1,5 +1,6 @@
 #include "TD_HandIKCore.h"
 #include "DrawDebugHelpers.h"
+#include "TD_AnimNodeHandIK.h"
 #include "Engine/World.h"
 
 namespace TD_AnimationCore
@@ -19,27 +20,104 @@ namespace TD_AnimationCore
 		return PFinal;
 	}
 
-	FVector GetDefaultControlDirection(const FVector P1, const FVector P2, const FVector ComponentUpVector, FVector ComponentRightVector, FHandIKDebugData& HandIKDebugData)
+	FVector GetDefaultHandleDir(const FVector P1, const FVector P2, const FVector ComponentUpVector,
+		FVector ComponentRightVector)
 	{
 		const FVector P = (P2 - P1);
 		const FVector DirToNextPoint = P.GetSafeNormal();
-		const FQuat Transformation= FQuat::FindBetweenVectors(ComponentUpVector, P);
-		const FVector ControlVector = Transformation.RotateVector(ComponentRightVector);
+		const FQuat Transformation = FQuat::FindBetweenVectors(ComponentUpVector, P);
+		const FVector HandleVector = Transformation.RotateVector(ComponentRightVector);
 
-		HandIKDebugData.P1 = P1;
-		HandIKDebugData.P2 = P2;
-		HandIKDebugData.ControlVector = ControlVector;
-		
-		return ControlVector.GetSafeNormal();
+		return HandleVector.GetSafeNormal();
 	}
 
-	bool SolveHandIK(TArray<FHandIKChainLink>& InOutChain, const FVector& TargetPosition, float MaximumReach, FHandIKDebugData& HandIKDebugData)
+	FVector GetHandleLocation(const FVector HandleStart, const FVector HandleDir, const float HandleHeight)
 	{
+		const FVector GetHandleLocation = HandleStart + (HandleDir * HandleHeight);
+		return GetHandleLocation;
+	}
+	/*
+	 * See https://raphlinus.github.io/curves/2018/12/28/bezier-arclength.html
+	 */
+	float GetHandleHeight(const FVector P1, const FVector P2, const float HandleWeight, const float ArcLength)
+	{
+		const FVector P = (P2 - P1);
+		const float Lc = P.Size();
+
+		const float A = Lc * HandleWeight;
+		const float B = Lc - A;
+		const float Lp = 3 * ArcLength - 2 * Lc;
+		const float HandleHeight = FMath::Sqrt(FMath::Pow(A, 4) - 2 * FMath::Square(A) * FMath::Square(B) - 2 * FMath::Square(A) * FMath::Square(Lp) + FMath::Pow(B, 4) - 2 * FMath::Square(B) * FMath::Square(Lp) + FMath::Pow(Lp, 4)) / (2 * Lp);
+
+		return HandleHeight;
+	}
+
+	float EvaluateBezierCurve(const FVector* ControlPoints, int32 NumPoints, FTD_BezierCurveCache& CurveCache)
+	{
+		// Because we only use 1 handle instead of 2, B == C
+		const FVector& A = ControlPoints[0];
+		const FVector& B = ControlPoints[1];
+		const FVector& C = ControlPoints[2];
+		const FVector& D = ControlPoints[3];
+
+		const float MinT = 0;
+		const float MaxT = 1;
+		const float StepSize = MaxT / (NumPoints - 1);
+		float T = MinT;
+		float ArcLength = 0;
+
+		FVector PrevPoint = QuadraticBezier(A, B, D, T);
+		CurveCache.Add(ArcLength, PrevPoint);
+
+		for (int i = 1; i < NumPoints; i++)
+		{
+			T += StepSize;
+			const FVector Point = QuadraticBezier(A, B, D, T);
+			ArcLength += FVector::Dist(PrevPoint, Point);
+			PrevPoint = Point;
+
+			CurveCache.Add(ArcLength, Point);
+		}
+
+		return ArcLength;
+	}
+
+	FTD_BezierCurveCache FindCurve(FVector P1, FVector P2, FVector HandleDir, float HandleWeight, float TargetArcLength, FHandIKDebugData& HandIKDebugData)
+	{
+		FTD_BezierCurveCache CurveCache = FTD_BezierCurveCache();
+		const FVector P = (P2 - P1);
+		const FVector HandleStart = P1 + (P * HandleWeight);
+		const float HandleHeight = GetHandleHeight(P1, P2, HandleWeight, TargetArcLength);
+
+		FVector ControlPoints[4];
+		ControlPoints[0] = P1;
+		ControlPoints[3] = P2;
+
+		const FVector Handle = GetHandleLocation(HandleStart, HandleDir, HandleHeight);
+		ControlPoints[1] = Handle;
+		ControlPoints[2] = Handle;
+		HandIKDebugData.ControlPoint = Handle;
+
+		float ArcLength = EvaluateBezierCurve(ControlPoints, 100, CurveCache);
+		float Delta = TargetArcLength - ArcLength;
+
+		UE_LOG(LogTemp, Warning, TEXT("----------------------"));
+		UE_LOG(LogTemp, Warning, TEXT("Esitmated ArcLength: %f"), ArcLength);
+		UE_LOG(LogTemp, Warning, TEXT("Target ArcLength: %f"), TargetArcLength);
+		UE_LOG(LogTemp, Warning, TEXT("Delta: %f"), Delta);
+		return CurveCache;
+	}
+
+
+	bool SolveHandIK(TArray<FHandIKChainLink>& InOutChain, const FVector& TargetPosition, float ControlPointWeight,
+		float MaximumReach, FHandIKDebugData& HandIKDebugData)
+	{
+
 		bool bBoneLocationUpdated = false;
 		float const RootToTargetDistSq = FVector::DistSquared(InOutChain[0].Position, TargetPosition);
 		int32 const NumChainLinks = InOutChain.Num();
-		FVector RightVector = FVector::RightVector;
-		FVector UpVector = FVector::UpVector;
+		const FVector RightVector = FVector::RightVector;
+		const FVector UpVector = FVector::UpVector;
 
 		// If the effector is further away than the distance from root to tip, simply move all bones in a line from root to effector location
 		if (RootToTargetDistSq > FMath::Square(MaximumReach))
@@ -54,25 +132,26 @@ namespace TD_AnimationCore
 		}
 		else // Effector is within reach, calculate bone translations to position tip at effector location
 		{
-			FVector P1 = InOutChain[0].Position;
-			P1.X = 0;
+			const FVector P1 = InOutChain[0].Position;
 			const FVector P2 = TargetPosition;
-			const FVector MidPoint = P1 + (P2/2.0);
-			FVector ControlVector = GetDefaultControlDirection(P1, P2, RightVector, UpVector, HandIKDebugData);
-			const FVector ControlPoint = MidPoint + (ControlVector * 15);
-			HandIKDebugData.ControlPoint = ControlPoint;
+			const FVector HandleDir = GetDefaultHandleDir(P1, P2, RightVector, UpVector);
+
 			HandIKDebugData.RightVector = RightVector;
 			HandIKDebugData.UpVector = UpVector;
+			HandIKDebugData.ControlVector = HandleDir;
+			HandIKDebugData.P1 = P1;
+			HandIKDebugData.P2 = P2;
 
-			//const FVector PFinal = QuadraticBezier
-
-			float TotalLength = 0;
-			for(int LinkIndex = 0; LinkIndex < NumChainLinks; LinkIndex++)
+			float ArcLength = 0;
+			const float Weight = FMath::Clamp(ControlPointWeight, 0.0f, 1.0f);
+			FTD_BezierCurveCache CurveCache = FindCurve(P1, P2, HandleDir, Weight, MaximumReach, HandIKDebugData);
+			//return true;
+	
+			for (int LinkIndex = 0; LinkIndex < NumChainLinks; LinkIndex++)
 			{
 				FHandIKChainLink& CurrentLink = InOutChain[LinkIndex];
-				TotalLength += CurrentLink.Length;
-				const float T = TotalLength / MaximumReach;
-				const FVector BonePosition = QuadraticBezier(P1, ControlPoint, P2, T);
+				ArcLength += CurrentLink.Length;
+				const FVector BonePosition = CurveCache.FindNearest(ArcLength);
 				CurrentLink.Position = BonePosition;
 			}
 			bBoneLocationUpdated = true;

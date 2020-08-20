@@ -85,5 +85,6 @@ public:
 
 namespace TD_AnimationCore
 {
-	TOAD_API bool SolveHandIK(TArray<FHandIKChainLink>& InOutChain, const FVector& TargetLocation, float MaximumReach, FHandIKDebugData& HandIKDebugData);
+	TOAD_API bool SolveHandIK(TArray<FHandIKChainLink>& InOutChain, const FVector& TargetLocation,
+	                          float ControlPointWeight, float MaximumReach, FHandIKDebugData& HandIKDebugData);
 };

@@ -31,9 +31,7 @@ FVector FTD_HandIKEditMode::GetWidgetLocation() const
 	FBoneSocketTarget Target = RuntimeNode->EffectorTarget;
 
 	USkeletalMeshComponent* SkelComp = GetAnimPreviewScene().GetPreviewMeshComponent();
-	UE_LOG(LogTemp, Warning, TEXT("GetWidgetLocation"));
 	return Location;
-	//return ConvertWidgetLocation(SkelComp, RuntimeNode->ForwardedPose, Target, Location, Space);
 }
 
 FWidget::EWidgetMode FTD_HandIKEditMode::GetWidgetMode() const
@@ -46,7 +44,6 @@ FWidget::EWidgetMode FTD_HandIKEditMode::GetWidgetMode() const
 	{
 		return FWidget::WM_Translate;
 	}
-	UE_LOG(LogTemp, Warning, TEXT("GetWidgetMode"));
 	return FWidget::WM_None;
 }
 
@@ -59,12 +56,10 @@ void FTD_HandIKEditMode::DoTranslation(FVector& InTranslation)
 	RuntimeNode->EffectorLocation += Offset;
 	GraphNode->Node.EffectorLocation = RuntimeNode->EffectorLocation;
 	GraphNode->SetDefaultValue(GET_MEMBER_NAME_STRING_CHECKED(FTD_AnimNodeHandIK, EffectorLocation), RuntimeNode->EffectorLocation);
-	UE_LOG(LogTemp, Warning, TEXT("DoTranslation"));
 }
 
 void FTD_HandIKEditMode::Render(const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Render"));
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	// draw line from root bone to tip bone if available
 	if (RuntimeNode && RuntimeNode->bEnableDebugDraw)
@@ -101,7 +96,7 @@ void FTD_HandIKEditMode::Render(const FSceneView* View, FViewport* Viewport, FPr
 		const auto MidPointOriginal= (P1 + (HandIKDebugData.UpVector * LineScale)) / 2;
 		PDI->DrawLine(
 			MidPointOriginal,
-			MidPointOriginal+ (HandIKDebugData.RightVector.GetSafeNormal() * LineScale),
+			MidPointOriginal + (HandIKDebugData.RightVector.GetSafeNormal() * LineScale),
 			FLinearColor::FromSRGBColor(FColor::Orange),
 			SDPG_Foreground
 		);
@@ -112,17 +107,18 @@ void FTD_HandIKEditMode::Render(const FSceneView* View, FViewport* Viewport, FPr
 			FLinearColor::FromSRGBColor(FColor::Orange),
 			SDPG_Foreground
 		);
+		for(int i = 1; i < RuntimeNode->Chain.Num(); i++)
+		{
+			FHandIKChainLink ChainLink = RuntimeNode->Chain[i];
+			PDI->DrawPoint(ChainLink.Position, FLinearColor::FromSRGBColor(FColor::Orange), 30, SDPG_Foreground);
+			FHandIKChainLink ParentChainLink = RuntimeNode->Chain[i - 1];
+			//PDI->DrawLine(
+			//	ChainLink.Position,
+			//	ParentChainLink.Position,
+			//	FLinearColor::FromSRGBColor(FColor::Blue),
+			//	SDPG_Foreground
+			//);
+		}
 	}
 #endif // #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
-
-//void FTD_HandIKEditMode::DrawCircle(FVector Center, float Radius, FVector ZeroVector, FPrimitiveDrawInterface* PDI)
-//{
-//	const int NumSubdivisions = 100;
-//	float Deg = 0;
-//	while(Deg < 360)
-//	{
-//		
-//	}
-//	
-//}

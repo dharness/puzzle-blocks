@@ -49,16 +49,27 @@ void FTD_AnimNodeHandIK::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseCo
 	// Gather all bone indices between root and tip.
 	TArray<FCompactPoseBoneIndex> BoneIndices;
 
+	const int32 BoneCount = CachedBoneReferences.Num();
+	for (int32 BoneIndex = 0; BoneIndex < BoneCount; BoneIndex++)
 	{
-		const FCompactPoseBoneIndex RootIndex = RootBone.GetCompactPoseIndex(BoneContainer);
-		FCompactPoseBoneIndex BoneIndex = TipBone.GetCompactPoseIndex(BoneContainer);
-		do
+		const FTD_HandIKCachedBoneData& BoneData = CachedBoneReferences[BoneIndex];
+		if (!BoneData.Bone.IsValidToEvaluate(BoneContainer))
 		{
-			BoneIndices.Insert(BoneIndex, 0);
-			BoneIndex = Output.Pose.GetPose().GetParentBoneIndex(BoneIndex);
-		} while (BoneIndex != RootIndex);
-		BoneIndices.Insert(BoneIndex, 0);
+			break;
+		}
+		BoneIndices.Add(BoneData.Bone.GetCompactPoseIndex(BoneContainer));
 	}
+
+	//{
+	//	const FCompactPoseBoneIndex RootIndex = RootBone.GetCompactPoseIndex(BoneContainer);
+	//	FCompactPoseBoneIndex BoneIndex = TipBone.GetCompactPoseIndex(BoneContainer);
+	//	do
+	//	{
+	//		BoneIndices.Insert(BoneIndex, 0);
+	//		BoneIndex = Output.Pose.GetPose().GetParentBoneIndex(BoneIndex);
+	//	} while (BoneIndex != RootIndex);
+	//	BoneIndices.Insert(BoneIndex, 0);
+	//}
 
 	// Maximum length of skeleton segment at full extension
 	float MaximumReach = 0;
@@ -68,8 +79,8 @@ void FTD_AnimNodeHandIK::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseCo
 	OutBoneTransforms.AddUninitialized(NumTransforms);
 
 	// Gather chain links. These are non zero length bones.
-	TArray<FHandIKChainLink> Chain;
-	Chain.Reserve(NumTransforms);
+	TArray<FHandIKChainLink> CurrentChain;
+	CurrentChain.Reserve(NumTransforms);
 
 	// Start with Root Bone
 	{
@@ -77,7 +88,7 @@ void FTD_AnimNodeHandIK::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseCo
 		const FTransform& BoneCSTransform = Output.Pose.GetComponentSpaceTransform(RootBoneIndex);
 
 		OutBoneTransforms[0] = FBoneTransform(RootBoneIndex, BoneCSTransform);
-		Chain.Add(FHandIKChainLink(BoneCSTransform.GetLocation(), 0.f, RootBoneIndex, 0));
+		CurrentChain.Add(FHandIKChainLink(BoneCSTransform.GetLocation(), 0.f, RootBoneIndex, 0));
 	}
 
 	// Go through remaining transforms
@@ -91,25 +102,26 @@ void FTD_AnimNodeHandIK::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseCo
 		OutBoneTransforms[TransformIndex] = FBoneTransform(BoneIndex, BoneCSTransform);
 
 		// Calculate the combined length of this segment of skeleton
-		float const BoneLength = FVector::Dist(BoneCSPosition, OutBoneTransforms[TransformIndex - 1].Transform.GetLocation());
+		float const BoneLength = CachedBoneLengths[TransformIndex];
 
 		if (!FMath::IsNearlyZero(BoneLength))
 		{
-			Chain.Add(FHandIKChainLink(BoneCSPosition, BoneLength, BoneIndex, TransformIndex));
+			CurrentChain.Add(FHandIKChainLink(BoneCSPosition, BoneLength, BoneIndex, TransformIndex));
 			MaximumReach += BoneLength;
 		}
 		else
 		{
 			// Mark this transform as a zero length child of the last link.
 			// It will inherit position and delta rotation from parent link.
-			FHandIKChainLink& ParentLink = Chain[Chain.Num() - 1];
+			FHandIKChainLink& ParentLink = CurrentChain[CurrentChain.Num() - 1];
 			ParentLink.ChildZeroLengthTransformIndices.Add(TransformIndex);
 		}
 	}
 
-	int32 const NumChainLinks = Chain.Num();
-	
-	const bool bBoneLocationUpdated = TD_AnimationCore::SolveHandIK(Chain, CSEffectorLocation, MaximumReach, HandIKDebugData);
+	int32 const NumChainLinks = CurrentChain.Num();
+
+	const bool bBoneLocationUpdated = TD_AnimationCore::SolveHandIK(CurrentChain, CSEffectorLocation, ControlPointWeight,
+	                                                                MaximumReach, HandIKDebugData);
 
 	// If we moved some bones, update bone transforms.
 	if (bBoneLocationUpdated)
@@ -117,7 +129,7 @@ void FTD_AnimNodeHandIK::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseCo
 		// First step: update bone transform positions from chain links.
 		for (int32 LinkIndex = 0; LinkIndex < NumChainLinks; LinkIndex++)
 		{
-			FHandIKChainLink const& ChainLink = Chain[LinkIndex];
+			FHandIKChainLink const& ChainLink = CurrentChain[LinkIndex];
 			OutBoneTransforms[ChainLink.TransformIndex].Transform.SetTranslation(ChainLink.Position);
 
 			// If there are any zero length children, update position of those
@@ -128,11 +140,10 @@ void FTD_AnimNodeHandIK::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseCo
 			}
 		}
 
-		// FABRIK algorithm - re-orientation of bone local axes after translation calculation
 		for (int32 LinkIndex = 0; LinkIndex < NumChainLinks - 1; LinkIndex++)
 		{
-			FHandIKChainLink const& CurrentLink = Chain[LinkIndex];
-			FHandIKChainLink const& ChildLink = Chain[LinkIndex + 1];
+			FHandIKChainLink const& CurrentLink = CurrentChain[LinkIndex];
+			FHandIKChainLink const& ChildLink = CurrentChain[LinkIndex + 1];
 
 			// Calculate pre-translation vector between this bone and child
 			FVector const OldDir = (GetCurrentLocation(Output.Pose, FCompactPoseBoneIndex(ChildLink.BoneIndex)) - GetCurrentLocation(Output.Pose, FCompactPoseBoneIndex(CurrentLink.BoneIndex))).GetUnsafeNormal();
@@ -161,11 +172,9 @@ void FTD_AnimNodeHandIK::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseCo
 				ChildBoneTransform.NormalizeRotation();
 			}
 		}
-//#if WITH_EDITOR
-//		DebugLines.Reset(OutBoneTransforms.Num());
-//		DebugLines.AddUninitialized(OutBoneTransforms.Num());
-//		DebugLines = Points;
-//#endif // WITH_EDITOR
+#if WITH_EDITOR
+		Chain = CurrentChain;
+#endif // WITH_EDITOR
 
 	}
 
@@ -202,6 +211,63 @@ void FTD_AnimNodeHandIK::InitializeBoneReferences(const FBoneContainer& Required
 	DECLARE_SCOPE_HIERARCHICAL_COUNTER_ANIMNODE(InitializeBoneReferences)
 	TipBone.Initialize(RequiredBones);
 	RootBone.Initialize(RequiredBones);
+
+	GatherBoneReferences(RequiredBones.GetReferenceSkeleton());
+
+	for (FTD_HandIKCachedBoneData& CachedBoneData : CachedBoneReferences)
+	{
+		CachedBoneData.Bone.Initialize(RequiredBones);
+	}
+}
+
+void FTD_AnimNodeHandIK::GatherBoneReferences(const FReferenceSkeleton& RefSkeleton)
+{
+	CachedBoneReferences.Reset();
+
+	int32 RootIndex = RefSkeleton.FindBoneIndex(RootBone.BoneName);
+	int32 TipIndex = RefSkeleton.FindBoneIndex(TipBone.BoneName);
+
+	// Loop backwards from tip to root inserting on the lefts side of the array
+	int32 BoneIndex = TipIndex;
+	do
+	{
+		FName BoneName = RefSkeleton.GetBoneName(BoneIndex);
+		CachedBoneReferences.EmplaceAt(0, BoneName, BoneIndex);
+		BoneIndex = RefSkeleton.GetParentIndex(BoneIndex);
+	} while (BoneIndex != RootIndex);
+
+	FName BoneName = RefSkeleton.GetBoneName(BoneIndex);
+	CachedBoneReferences.EmplaceAt(0, BoneName, BoneIndex);
+
+	GatherBoneLengths(RefSkeleton);
+}
+
+void FTD_AnimNodeHandIK::GatherBoneLengths(const FReferenceSkeleton& RefSkeleton)
+{
+	if (CachedBoneReferences.Num() > 0)
+	{
+		TArray<FTransform> ComponentSpaceTransforms;
+		FAnimationRuntime::FillUpComponentSpaceTransforms(RefSkeleton, RefSkeleton.GetRefBonePose(), ComponentSpaceTransforms);
+
+		// Build cached bone info
+		CachedBoneLengths.Reset();
+		for (int32 BoneIndex = 0; BoneIndex < CachedBoneReferences.Num(); BoneIndex++)
+		{
+			float BoneLength = 0.0f;
+
+			if (BoneIndex > 0)
+			{
+				FTD_HandIKCachedBoneData& BoneData = CachedBoneReferences[BoneIndex];
+				const FTransform& Transform = ComponentSpaceTransforms[BoneData.RefSkeletonIndex];
+
+				const FTD_HandIKCachedBoneData& ParentBoneData = CachedBoneReferences[BoneIndex - 1];
+				const FTransform& ParentTransform = ComponentSpaceTransforms[ParentBoneData.RefSkeletonIndex];
+				const FVector BoneDir = Transform.GetLocation() - ParentTransform.GetLocation();
+				BoneLength = BoneDir.Size();
+			}
+			CachedBoneLengths.Add(BoneLength);
+		}
+	}
 }
 
 void FTD_AnimNodeHandIK::GatherDebugData(FNodeDebugData& DebugData)
@@ -217,4 +283,40 @@ void FTD_AnimNodeHandIK::Initialize_AnyThread(const FAnimationInitializeContext&
 {
 	DECLARE_SCOPE_HIERARCHICAL_COUNTER_ANIMNODE(Initialize_AnyThread)
 	Super::Initialize_AnyThread(Context);
+}
+
+//-----------------------------------------------------------------------------------------------------------------------------
+// --------------------------------------------------- FTD_BezierCurveCache ---------------------------------------------------
+//-----------------------------------------------------------------------------------------------------------------------------
+
+
+void FTD_BezierCurveCache::Add(float ArcLength, FVector CurvePosition)
+{
+	CurveCache.Add(MakeTuple(ArcLength, CurvePosition));
+}
+
+void FTD_BezierCurveCache::Empty()
+{
+	CurveCache.Empty();
+}
+
+FVector FTD_BezierCurveCache::FindNearest(float ArcLength)
+{
+	FVector NearestCurveValue;
+
+	//UE_LOG(LogTemp, Warning, TEXT("ArcLength: %f, T: %f"), ArcLength, T);
+	for (int i = 0; i < CurveCache.Num() - 1; i++)
+	{
+		const auto CacheItem = CurveCache[i];
+		const auto NextCacheItem = CurveCache[i + 1];
+		const float CacheArcLength = CacheItem.Key;
+		const float NextCacheArcLength = NextCacheItem.Key;
+		NearestCurveValue = CacheItem.Value;
+
+		if (ArcLength >= CacheArcLength && ArcLength < NextCacheArcLength)
+		{
+			break;
+		}
+	}
+	return NearestCurveValue;
 }
