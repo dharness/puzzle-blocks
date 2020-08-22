@@ -16,10 +16,13 @@ public class toad : ModuleRules
 				"InputCore",
 				"AnimationCore",
 				"AnimGraphRuntime",
+				"CurveIK"
 			}
 		);
 
-		PrivateDependencyModuleNames.AddRange(new string[] { });
+		PrivateDependencyModuleNames.AddRange(new string[] {
+			"CurveIK"
+		});
 
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
