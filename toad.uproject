@@ -12,10 +12,16 @@
 				"Engine",
 				"CoreUObject"
 			]
+		}
+	],
+	"Plugins": [
+		{
+			"Name": "PythonScriptPlugin",
+			"Enabled": true
 		},
 		{
-			"Name": "toadEditor",
-			"Type":  "Editor"
+			"Name": "EditorScriptingUtilities",
+			"Enabled": true
 		}
 	]
 }

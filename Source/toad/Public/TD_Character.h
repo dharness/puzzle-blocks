@@ -3,9 +3,10 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "TD_CharacterAction.h"
 #include "GameFramework/Pawn.h"
 #include "Components/PrimitiveComponent.h"
-#include "TD_HoldableBase.h"
+#include "TD_InteractableBase.h"
 #include "TD_Character.generated.h"
 
 UCLASS(Blueprintable)
@@ -18,33 +19,40 @@ public:
 
 	virtual void Tick(float DeltaTime) override;
 
-	UFUNCTION(BlueprintCallable)
-	void Init(UPrimitiveComponent* GrabRegion);
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	FTD_CharacterAction CurrentAction;
 
 	UFUNCTION(BlueprintCallable)
-	void AttachToHolster(ATD_HoldableBase* ToGrab, USceneComponent* Holster, USceneComponent* RightHandle, bool bKeepHolsterLocation);
+	void Init(UPrimitiveComponent* GrabRegion, USceneComponent* HandsMesh, USceneComponent* Eyes);
 
 	UFUNCTION(BlueprintCallable)
 	void Throw(float Strength);
 
-	UFUNCTION(BlueprintCallable, Category = "TD_Interaction")
-	void GetHoldable(bool& Success, ATD_HoldableBase*& Holdable);
+	UFUNCTION(BlueprintCallable)
+	void Grab(ATD_InteractableBase* ToGrab);
 
 	UFUNCTION(BlueprintCallable, Category = "TD_Interaction")
-	void GetHeldObject(bool& Success, ATD_HoldableBase*& HeldObject);
+	void GetHoldable(bool& Success, ATD_InteractableBase*& Holdable);
+
+	UFUNCTION(BlueprintCallable, Category = "TD_Interaction")
+	void GetHeldObject(bool& Success, ATD_InteractableBase*& HeldObject);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "TD_Interaction")
 	void OnInteractableChanged();
 
 private:
 	UPROPERTY()
-	TArray<ATD_HoldableBase*> Holdables;
+	TArray<ATD_InteractableBase*> Interactables;
 	UPROPERTY()
-	UPrimitiveComponent* GrabRegion;
+	UPrimitiveComponent* InteractionRegion;
 	UPROPERTY()
-	ATD_HoldableBase* CurrentHoldable;
+	USceneComponent* HandsMesh;
 	UPROPERTY()
-	ATD_HoldableBase* HeldObject;
+	USceneComponent* EyesMesh;
+	UPROPERTY()
+	ATD_InteractableBase* CurrentInteractable;
+	UPROPERTY()
+	ATD_InteractableBase* HeldObject;
 	UPROPERTY()
 	FName HeldObjectCollisionProfileName;
 	UPROPERTY()
@@ -54,7 +62,6 @@ private:
 	void OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 	UFUNCTION()
 	void OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
-	void UpdateHoldables(UPrimitiveComponent* OverlappedComp);
-	void UpdateHoldables();
+	void UpdateCurrentAction();
 	bool IsInteractable(AActor* Actor);
 };

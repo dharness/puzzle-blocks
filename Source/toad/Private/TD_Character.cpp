@@ -1,7 +1,10 @@
 #include "TD_Character.h"
-#include "TD_Holdable.h"
+
+#include "DrawDebugHelpers.h"
+#include "TD_Interactable.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Components/StaticMeshComponent.h"
+#include "Engine/Engine.h"
 
 
 ATD_Character::ATD_Character()
@@ -12,56 +15,41 @@ ATD_Character::ATD_Character()
 void ATD_Character::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	UpdateHoldables();
+	UpdateCurrentAction();
 }
 
-void ATD_Character::Init(UPrimitiveComponent* NextGrabRegion)
+void ATD_Character::Init(UPrimitiveComponent* NextGrabRegion, USceneComponent* NextHandsMesh, USceneComponent* NextEyes)
 {
-	GrabRegion = NextGrabRegion;
+	InteractionRegion = NextGrabRegion;
+	HandsMesh = NextHandsMesh;
+	EyesMesh = NextEyes;
 
-	GrabRegion->OnComponentBeginOverlap.AddDynamic(this, &ATD_Character::OnOverlapBegin);
-	GrabRegion->OnComponentEndOverlap.AddDynamic(this, &ATD_Character::OnOverlapEnd);
+	InteractionRegion->OnComponentBeginOverlap.AddDynamic(this, &ATD_Character::OnOverlapBegin);
+	InteractionRegion->OnComponentEndOverlap.AddDynamic(this, &ATD_Character::OnOverlapEnd);
 }
 
 void ATD_Character::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	UpdateHoldables(OverlappedComp);
+	//ITD_Interactable* InteractableObject = Cast<ITD_Interactable>(OtherActor);
+	//if (InteractableObject != nullptr)
+	//{
+	//	const auto InteractionType = InteractableObject->Execute_GetInteractionType(OtherActor);
+	//	CurrentAction = FTD_CharacterAction();
+	//	CurrentAction.InteractionType = InteractionType;
+	//}
+	UpdateCurrentAction();
 }
 
 void ATD_Character::OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	UpdateHoldables(OverlappedComp);
-	if (HasJustThrown && OtherActor == HeldObject)
-	{
-		UStaticMeshComponent* StaticMesh = Cast<UStaticMeshComponent>(HeldObject->GetComponentByClass(UStaticMeshComponent::StaticClass()));
-		StaticMesh->SetCollisionProfileName(HeldObjectCollisionProfileName);
-		HeldObject = nullptr;
-		HasJustThrown = false;
-	}
-}
-
-void ATD_Character::AttachToHolster(ATD_HoldableBase* ToGrab, USceneComponent* Holster, USceneComponent* RightHandle, bool bKeepHolsterLocation)
-{
-	if (IsValid(ToGrab))
-	{
-		auto AttachmentRules = FAttachmentTransformRules(
-			EAttachmentRule::SnapToTarget,
-			EAttachmentRule::SnapToTarget,
-			EAttachmentRule::KeepWorld,
-			false
-		);
-
-		if (!bKeepHolsterLocation)
-		{
-			Holster->SetWorldLocation(ToGrab->GetActorLocation());
-		}
-		UStaticMeshComponent* StaticMesh = Cast<UStaticMeshComponent>(ToGrab->GetComponentByClass(UStaticMeshComponent::StaticClass()));
-		StaticMesh->SetSimulatePhysics(false);
-		HeldObjectCollisionProfileName = StaticMesh->GetCollisionProfileName();
-		StaticMesh->SetCollisionProfileName(FName(TEXT("HeldObject")));
-		ToGrab->AttachToComponent(Holster, AttachmentRules);
-		HeldObject = ToGrab;
-	}
+	UpdateCurrentAction();
+	//if (HasJustThrown && OtherActor == HeldObject)
+	//{
+	//	UStaticMeshComponent* StaticMesh = Cast<UStaticMeshComponent>(HeldObject->GetComponentByClass(UStaticMeshComponent::StaticClass()));
+	//	StaticMesh->SetCollisionProfileName(HeldObjectCollisionProfileName);
+	//	HeldObject = nullptr;
+	//	HasJustThrown = false;
+	//}
 }
 
 void ATD_Character::Throw(float Strength)
@@ -83,48 +71,77 @@ void ATD_Character::Throw(float Strength)
 	HasJustThrown = true;
 }
 
-void ATD_Character::GetHoldable(bool& Success, ATD_HoldableBase*& Holdable)
+void ATD_Character::Grab(ATD_InteractableBase* ToGrab)
 {
-	Success = CurrentHoldable != nullptr;
-	Holdable = CurrentHoldable;
+	if (IsValid(ToGrab))
+	{
+		auto AttachmentRules = FAttachmentTransformRules(
+			EAttachmentRule::SnapToTarget,
+			EAttachmentRule::SnapToTarget,
+			EAttachmentRule::KeepWorld,
+			false
+		);
+
+		UStaticMeshComponent* StaticMesh = Cast<UStaticMeshComponent>(ToGrab->GetComponentByClass(UStaticMeshComponent::StaticClass()));
+		StaticMesh->SetSimulatePhysics(false);
+		HeldObjectCollisionProfileName = StaticMesh->GetCollisionProfileName();
+		StaticMesh->SetCollisionProfileName(FName(TEXT("HeldObject")));
+		FName SocketName = FName("Holster_2handsSocket");
+		ToGrab->AttachToComponent(HandsMesh, AttachmentRules, SocketName);
+		HeldObject = ToGrab;
+	}
 }
 
-void ATD_Character::GetHeldObject(bool& Success, ATD_HoldableBase*& _HeldObject)
+void ATD_Character::GetHoldable(bool& Success, ATD_InteractableBase*& Holdable)
+{
+	Success = CurrentInteractable != nullptr;
+	Holdable = CurrentInteractable;
+}
+
+void ATD_Character::GetHeldObject(bool& Success, ATD_InteractableBase*& _HeldObject)
 {
 	Success = HeldObject != nullptr;
 	_HeldObject = HeldObject;
 }
 
-void ATD_Character::UpdateHoldables()
-{
-	auto NextInteractable = Holdables.IsValidIndex(0) ? Holdables[0] : nullptr;
-
-	if (NextInteractable != CurrentHoldable)
-	{
-		CurrentHoldable = NextInteractable;
-		OnInteractableChanged();
-	}
-}
-
-void ATD_Character::UpdateHoldables(UPrimitiveComponent* OverlappedComp)
+void ATD_Character::UpdateCurrentAction()
 {
 	TArray<AActor*> OverlappingActors;
-	OverlappedComp->GetOverlappingActors(OverlappingActors);
+	InteractionRegion->GetOverlappingActors(OverlappingActors);
+	float MinSquaredDistance = TNumericLimits< float >::Max();
+	ITD_Interactable* ClosestInteractable = nullptr;
 
-	TArray<ATD_HoldableBase*> NextHoldables;
+	CurrentAction = FTD_CharacterAction();
+	CurrentAction.InteractionType = ETD_InteractionTypes::None;
+
 	for (auto* Actor : OverlappingActors)
 	{
-		ATD_HoldableBase* Holdable = Cast<ATD_HoldableBase>(Actor);
-		if (IsValid(Holdable))
+		ITD_Interactable* Interactable = Cast<ITD_Interactable>(Actor);
+		if (Interactable != nullptr)
 		{
-			NextHoldables.Emplace(Holdable);
+			FHitResult OutHit;
+			FVector Start = EyesMesh->GetComponentLocation();
+			FVector End = Actor->GetActorLocation();
+			FCollisionQueryParams CollisionParams;
+
+			bool HasHit = GetWorld()->LineTraceSingleByChannel(OutHit, Start, End, ECC_Visibility, CollisionParams);
+			if (HasHit)
+			{
+				float SquaredDistance = (OutHit.Location - Start).SizeSquared();
+				if (SquaredDistance < MinSquaredDistance)
+				{
+					MinSquaredDistance = SquaredDistance;
+					ClosestInteractable = Interactable;
+					CurrentAction = FTD_CharacterAction();
+					CurrentAction.InteractionType = ClosestInteractable->Execute_GetInteractionType(Actor);
+				}
+			}
 		}
 	}
-	Holdables = NextHoldables;
 }
 
 // deprecated?
 bool ATD_Character::IsInteractable(AActor* Actor)
 {
-	return UKismetSystemLibrary::DoesImplementInterface(Actor, UTD_Holdable::StaticClass());
+	return UKismetSystemLibrary::DoesImplementInterface(Actor, UTD_Interactable::StaticClass());
 }
