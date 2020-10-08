@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "TD_CharacterAction.h"
+#include "TD_CharacterStates.h"
 #include "GameFramework/Pawn.h"
 #include "Components/PrimitiveComponent.h"
 #include "TD_InteractableBase.h"
@@ -20,7 +21,13 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	FTD_CharacterAction CurrentAction;
+	bool bIsHiding;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	FTD_CharacterAction CurrentActionOption;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TEnumAsByte<ETD_CharacterStates> CurrentState;
 
 	UFUNCTION(BlueprintCallable)
 	void Init(UPrimitiveComponent* GrabRegion, USceneComponent* HandsMesh, USceneComponent* Eyes);
@@ -30,6 +37,12 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void Grab(ATD_InteractableBase* ToGrab);
+
+	UFUNCTION(BlueprintCallable)
+	void HideUnder(AActor* ObjectToHideUnder);
+
+	UFUNCTION(BlueprintCallable)
+	void OnHideContactObject();
 
 	UFUNCTION(BlueprintCallable, Category = "TD_Interaction")
 	void GetHoldable(bool& Success, ATD_InteractableBase*& Holdable);
@@ -54,14 +67,14 @@ private:
 	UPROPERTY()
 	ATD_InteractableBase* HeldObject;
 	UPROPERTY()
+	AActor* CurrentObject;
+	UPROPERTY()
 	FName HeldObjectCollisionProfileName;
+	UPROPERTY()
+	FName CurrentObjectCollisionProfileName;
 	UPROPERTY()
 	bool HasJustThrown;
 	
-	UFUNCTION()
-	void OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-	UFUNCTION()
-	void OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
-	void UpdateCurrentAction();
-	bool IsInteractable(AActor* Actor);
+	void UpdateCurrentActionOption();
+	bool CanTakeAction(ETD_InteractionTypes InteractionType);
 };

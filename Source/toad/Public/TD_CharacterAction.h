@@ -15,6 +15,10 @@ struct FTD_CharacterAction
 {
     GENERATED_USTRUCT_BODY();
 
+public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TEnumAsByte<ETD_InteractionTypes> InteractionType;
+	TEnumAsByte<ETD_InteractionTypes> InteractionType = ETD_InteractionTypes::None;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	AActor* Interactable = nullptr;
 };

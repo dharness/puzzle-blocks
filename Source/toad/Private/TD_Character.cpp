@@ -15,7 +15,7 @@ ATD_Character::ATD_Character()
 void ATD_Character::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	UpdateCurrentAction();
+	UpdateCurrentActionOption();
 }
 
 void ATD_Character::Init(UPrimitiveComponent* NextGrabRegion, USceneComponent* NextHandsMesh, USceneComponent* NextEyes)
@@ -23,33 +23,7 @@ void ATD_Character::Init(UPrimitiveComponent* NextGrabRegion, USceneComponent* N
 	InteractionRegion = NextGrabRegion;
 	HandsMesh = NextHandsMesh;
 	EyesMesh = NextEyes;
-
-	InteractionRegion->OnComponentBeginOverlap.AddDynamic(this, &ATD_Character::OnOverlapBegin);
-	InteractionRegion->OnComponentEndOverlap.AddDynamic(this, &ATD_Character::OnOverlapEnd);
-}
-
-void ATD_Character::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
-	//ITD_Interactable* InteractableObject = Cast<ITD_Interactable>(OtherActor);
-	//if (InteractableObject != nullptr)
-	//{
-	//	const auto InteractionType = InteractableObject->Execute_GetInteractionType(OtherActor);
-	//	CurrentAction = FTD_CharacterAction();
-	//	CurrentAction.InteractionType = InteractionType;
-	//}
-	UpdateCurrentAction();
-}
-
-void ATD_Character::OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
-{
-	UpdateCurrentAction();
-	//if (HasJustThrown && OtherActor == HeldObject)
-	//{
-	//	UStaticMeshComponent* StaticMesh = Cast<UStaticMeshComponent>(HeldObject->GetComponentByClass(UStaticMeshComponent::StaticClass()));
-	//	StaticMesh->SetCollisionProfileName(HeldObjectCollisionProfileName);
-	//	HeldObject = nullptr;
-	//	HasJustThrown = false;
-	//}
+	CurrentState = ETD_CharacterStates::Idle;
 }
 
 void ATD_Character::Throw(float Strength)
@@ -92,6 +66,32 @@ void ATD_Character::Grab(ATD_InteractableBase* ToGrab)
 	}
 }
 
+void ATD_Character::HideUnder(AActor* ObjectToHideUnder)
+{
+	if (IsValid(ObjectToHideUnder))
+	{
+		UStaticMeshComponent* StaticMesh = Cast<UStaticMeshComponent>(ObjectToHideUnder->GetComponentByClass(UStaticMeshComponent::StaticClass()));
+		StaticMesh->SetSimulatePhysics(false);
+		CurrentObjectCollisionProfileName = StaticMesh->GetCollisionProfileName();
+		StaticMesh->SetCollisionProfileName(FName(TEXT("HeldObject")));
+		CurrentObject = ObjectToHideUnder;
+		this->bIsHiding = true;
+	}
+}
+
+void ATD_Character::OnHideContactObject()
+{
+	auto AttachmentRules = FAttachmentTransformRules(
+		EAttachmentRule::SnapToTarget,
+		EAttachmentRule::SnapToTarget,
+		EAttachmentRule::KeepWorld,
+		false
+	);
+
+	FName SocketName = FName("Holster_2handsSocket");
+	CurrentObject->AttachToComponent(HandsMesh, AttachmentRules, SocketName);
+}
+
 void ATD_Character::GetHoldable(bool& Success, ATD_InteractableBase*& Holdable)
 {
 	Success = CurrentInteractable != nullptr;
@@ -104,15 +104,14 @@ void ATD_Character::GetHeldObject(bool& Success, ATD_InteractableBase*& _HeldObj
 	_HeldObject = HeldObject;
 }
 
-void ATD_Character::UpdateCurrentAction()
+void ATD_Character::UpdateCurrentActionOption()
 {
 	TArray<AActor*> OverlappingActors;
 	InteractionRegion->GetOverlappingActors(OverlappingActors);
 	float MinSquaredDistance = TNumericLimits< float >::Max();
 	ITD_Interactable* ClosestInteractable = nullptr;
 
-	CurrentAction = FTD_CharacterAction();
-	CurrentAction.InteractionType = ETD_InteractionTypes::None;
+	CurrentActionOption = FTD_CharacterAction();
 
 	for (auto* Actor : OverlappingActors)
 	{
@@ -130,18 +129,22 @@ void ATD_Character::UpdateCurrentAction()
 				float SquaredDistance = (OutHit.Location - Start).SizeSquared();
 				if (SquaredDistance < MinSquaredDistance)
 				{
+					auto InteractionType = ClosestInteractable->Execute_GetInteractionType(Actor);
+					if (!CanTakeAction(InteractionType)) { continue; }
+
 					MinSquaredDistance = SquaredDistance;
 					ClosestInteractable = Interactable;
-					CurrentAction = FTD_CharacterAction();
-					CurrentAction.InteractionType = ClosestInteractable->Execute_GetInteractionType(Actor);
+					CurrentActionOption = FTD_CharacterAction();
+					CurrentActionOption.InteractionType = ClosestInteractable->Execute_GetInteractionType(Actor);
+					CurrentActionOption.Interactable = Actor;
 				}
 			}
 		}
 	}
 }
 
-// deprecated?
-bool ATD_Character::IsInteractable(AActor* Actor)
+bool ATD_Character::CanTakeAction(ETD_InteractionTypes InteractionType)
 {
-	return UKismetSystemLibrary::DoesImplementInterface(Actor, UTD_Interactable::StaticClass());
+	if (InteractionType == ETD_InteractionTypes::Grabbable) { return false; }
+	return true;
 }
