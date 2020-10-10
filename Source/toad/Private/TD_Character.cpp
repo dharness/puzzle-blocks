@@ -80,17 +80,30 @@ void ATD_Character::HideUnder(AActor* ObjectToHideUnder)
 	}
 }
 
+void ATD_Character::Unhide()
+{
+	if (IsValid(CurrentObject))
+	{
+		USkeletalMeshComponent* StaticMesh = Cast<USkeletalMeshComponent>(CurrentObject->GetComponentByClass(USkeletalMeshComponent::StaticClass()));
+		StaticMesh->SetSimulatePhysics(true);
+		StaticMesh->SetCollisionProfileName(CurrentObjectCollisionProfileName);
+		CurrentObject = nullptr;
+		this->bIsHiding = false;
+	}
+}
+
 void ATD_Character::OnHideContactObject()
 {
 	auto AttachmentRules = FAttachmentTransformRules(
 		EAttachmentRule::SnapToTarget,
-		EAttachmentRule::KeepWorld,
+		EAttachmentRule::SnapToTarget,
 		EAttachmentRule::KeepWorld,
 		false
 	);
 
 	FName SocketName = FName("Holster_2handsSocket");
 	CurrentObject->AttachToComponent(HandsMesh, AttachmentRules, SocketName);
+	CurrentState = ETD_CharacterStates::Hiding;
 }
 
 void ATD_Character::GetHoldable(bool& Success, ATD_InteractableBase*& Holdable)
@@ -105,6 +118,15 @@ void ATD_Character::GetHeldObject(bool& Success, ATD_InteractableBase*& _HeldObj
 	_HeldObject = HeldObject;
 }
 
+void ATD_Character::GetCurrentObject(bool& Success, AActor*& OutCurrentObject)
+{
+	if(CurrentObject != nullptr)
+	{
+		Success = true;
+		OutCurrentObject = CurrentObject;
+	}
+}
+
 void ATD_Character::UpdateCurrentActionOption()
 {
 	TArray<AActor*> OverlappingActors;
@@ -112,7 +134,16 @@ void ATD_Character::UpdateCurrentActionOption()
 	float MinSquaredDistance = TNumericLimits< float >::Max();
 	ITD_Interactable* ClosestInteractable = nullptr;
 
+	// Check if we can take an action without interacting with any world objects
+	FTD_CharacterAction* ActionOption = CheckDefaultActionOptions();
+	if (ActionOption != nullptr)
+	{
+		CurrentActionOption = *ActionOption;
+		return;
+	}
+
 	CurrentActionOption = FTD_CharacterAction();
+	
 
 	for (auto* Actor : OverlappingActors)
 	{
@@ -144,8 +175,23 @@ void ATD_Character::UpdateCurrentActionOption()
 	}
 }
 
-bool ATD_Character::CanTakeAction(ETD_InteractionTypes InteractionType)
+FTD_CharacterAction* ATD_Character::CheckDefaultActionOptions()
 {
-	if (InteractionType == ETD_InteractionTypes::Grabbable) { return false; }
+	FTD_CharacterAction* ActionOption = nullptr;
+	UE_LOG(LogTemp, Warning, TEXT("HERE"));
+	if (CurrentState == ETD_CharacterStates::Hiding && CurrentObject != nullptr)
+	{
+		ActionOption = new FTD_CharacterAction();
+		ActionOption->Interactable = CurrentObject;
+		ActionOption->InteractionType = ETD_ActionTypes::Unhide;
+	}
+
+	return ActionOption;
+}
+
+bool ATD_Character::CanTakeAction(ETD_ActionTypes InteractionType)
+{
+	if (InteractionType == ETD_ActionTypes::Grab) { return false; }
+	
 	return true;
 }

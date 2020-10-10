@@ -16,7 +16,7 @@ class TOAD_API ATD_PropHidingSpot : public ATD_Prop
 	
 // Interface functions
 public:
-	ETD_InteractionTypes GetInteractionType_Implementation() override;
+	ETD_ActionTypes GetInteractionType_Implementation() override;
 
 	UPROPERTY(VisibleAnywhere)
 	USkeletalMeshComponent* SkeletalMesh;

@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "TD_InteractionTypes.h"
+#include "TD_ActionTypes.h"
 #include "UObject/Interface.h"
 #include "TD_Interactable.generated.h"
 
@@ -16,5 +16,5 @@ class TOAD_API ITD_Interactable
 
 public:
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
-	ETD_InteractionTypes GetInteractionType();
+	ETD_ActionTypes GetInteractionType();
 };

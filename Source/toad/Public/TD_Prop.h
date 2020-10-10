@@ -14,5 +14,5 @@ class TOAD_API ATD_Prop : public AActor, public ITD_Interactable
 
 // Interface functions
 public:
-	ETD_InteractionTypes GetInteractionType_Implementation() override;
+	ETD_ActionTypes GetInteractionType_Implementation() override;
 };

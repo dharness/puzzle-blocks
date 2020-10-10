@@ -42,6 +42,9 @@ public:
 	void HideUnder(AActor* ObjectToHideUnder);
 
 	UFUNCTION(BlueprintCallable)
+	void Unhide();
+
+	UFUNCTION(BlueprintCallable)
 	void OnHideContactObject();
 
 	UFUNCTION(BlueprintCallable, Category = "TD_Interaction")
@@ -50,9 +53,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "TD_Interaction")
 	void GetHeldObject(bool& Success, ATD_InteractableBase*& HeldObject);
 
+	UFUNCTION(BlueprintCallable, Category = "TD_Interaction")
+	void GetCurrentObject(bool& Success, AActor*& OutCurrentObject);
+
 	UFUNCTION(BlueprintImplementableEvent, Category = "TD_Interaction")
 	void OnInteractableChanged();
-
 
 private:
 	UPROPERTY()
@@ -77,5 +82,6 @@ private:
 	AActor* CurrentObject;
 	
 	void UpdateCurrentActionOption();
-	bool CanTakeAction(ETD_InteractionTypes InteractionType);
+	FTD_CharacterAction* CheckDefaultActionOptions();
+	bool CanTakeAction(ETD_ActionTypes InteractionType);
 };

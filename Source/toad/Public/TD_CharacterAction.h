@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "TD_InteractionTypes.h"
+#include "TD_ActionTypes.h"
 
 #include "TD_CharacterAction.generated.h"
 
@@ -17,7 +17,7 @@ struct FTD_CharacterAction
 
 public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TEnumAsByte<ETD_InteractionTypes> InteractionType = ETD_InteractionTypes::None;
+	TEnumAsByte<ETD_ActionTypes> InteractionType = ETD_ActionTypes::None;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	AActor* Interactable = nullptr;

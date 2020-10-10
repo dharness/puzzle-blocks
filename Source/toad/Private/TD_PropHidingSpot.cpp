@@ -7,8 +7,8 @@ ATD_PropHidingSpot::ATD_PropHidingSpot()
 	SkeletalMesh->SetupAttachment(RootComponent);
 }
 
-ETD_InteractionTypes ATD_PropHidingSpot::GetInteractionType_Implementation()
+ETD_ActionTypes ATD_PropHidingSpot::GetInteractionType_Implementation()
 {
-	return ETD_InteractionTypes::HidingSpot;
+	return ETD_ActionTypes::Hide;
 }
 

@@ -1,6 +1,6 @@
 #include "TD_PropSimple.h"
 
-ETD_InteractionTypes ATD_PropSimple::GetInteractionType_Implementation()
+ETD_ActionTypes ATD_PropSimple::GetInteractionType_Implementation()
 {
-	return ETD_InteractionTypes::Grabbable;
+	return ETD_ActionTypes::Grab;
 }
