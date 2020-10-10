@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "TD_Prop.h"
 #include "TD_PropHidingSpot.generated.h"
 
@@ -12,7 +12,12 @@ class TOAD_API ATD_PropHidingSpot : public ATD_Prop
 {
 	GENERATED_BODY()
 
+	ATD_PropHidingSpot();
+	
 // Interface functions
 public:
 	ETD_InteractionTypes GetInteractionType_Implementation() override;
+
+	UPROPERTY(VisibleAnywhere)
+	USkeletalMeshComponent* SkeletalMesh;
 };

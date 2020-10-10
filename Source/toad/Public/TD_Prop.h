@@ -15,11 +15,4 @@ class TOAD_API ATD_Prop : public AActor, public ITD_Interactable
 // Interface functions
 public:
 	ETD_InteractionTypes GetInteractionType_Implementation() override;
-
-public:
-	ATD_Prop();
-
-	UPROPERTY(VisibleAnywhere)
-	UStaticMeshComponent* StaticMesh;
-
 };

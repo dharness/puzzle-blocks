@@ -53,6 +53,7 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "TD_Interaction")
 	void OnInteractableChanged();
 
+
 private:
 	UPROPERTY()
 	TArray<ATD_InteractableBase*> Interactables;
@@ -67,13 +68,13 @@ private:
 	UPROPERTY()
 	ATD_InteractableBase* HeldObject;
 	UPROPERTY()
-	AActor* CurrentObject;
-	UPROPERTY()
 	FName HeldObjectCollisionProfileName;
 	UPROPERTY()
 	FName CurrentObjectCollisionProfileName;
 	UPROPERTY()
 	bool HasJustThrown;
+	UPROPERTY()
+	AActor* CurrentObject;
 	
 	void UpdateCurrentActionOption();
 	bool CanTakeAction(ETD_InteractionTypes InteractionType);

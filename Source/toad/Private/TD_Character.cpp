@@ -2,6 +2,7 @@
 
 #include "DrawDebugHelpers.h"
 #include "TD_Interactable.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/Engine.h"
@@ -70,7 +71,7 @@ void ATD_Character::HideUnder(AActor* ObjectToHideUnder)
 {
 	if (IsValid(ObjectToHideUnder))
 	{
-		UStaticMeshComponent* StaticMesh = Cast<UStaticMeshComponent>(ObjectToHideUnder->GetComponentByClass(UStaticMeshComponent::StaticClass()));
+		USkeletalMeshComponent* StaticMesh = Cast<USkeletalMeshComponent>(ObjectToHideUnder->GetComponentByClass(USkeletalMeshComponent::StaticClass()));
 		StaticMesh->SetSimulatePhysics(false);
 		CurrentObjectCollisionProfileName = StaticMesh->GetCollisionProfileName();
 		StaticMesh->SetCollisionProfileName(FName(TEXT("HeldObject")));
@@ -83,7 +84,7 @@ void ATD_Character::OnHideContactObject()
 {
 	auto AttachmentRules = FAttachmentTransformRules(
 		EAttachmentRule::SnapToTarget,
-		EAttachmentRule::SnapToTarget,
+		EAttachmentRule::KeepWorld,
 		EAttachmentRule::KeepWorld,
 		false
 	);
